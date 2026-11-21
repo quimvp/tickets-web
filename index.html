@@ -34,6 +34,7 @@
 .sidebar-panel{background:white;border:1px solid #dbe2ef;border-radius:16px;padding:16px;min-width:0}
 .agent-list{list-style:none;margin:10px 0 0;padding:0}
 .agent-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;overflow-wrap:anywhere}
+.agent-row button{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;overflow-wrap:anywhere}
 .agent-row+.agent-row{border-top:1px solid #e5eaf3}
 .agent-total{flex:none;background:#eef1fa;border-radius:12px;padding:2px 8px;font-size:14px;font-variant-numeric:tabular-nums}
 </style>
@@ -61,7 +62,7 @@ const by=id=>document.getElementById(id);
 const form=by('form'),editor=by('editor'),deletion=by('deletion'),board=by('board');
 const field=name=>form.elements.namedItem(name);
 const today=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid'}).format(new Date());
-let cards=[], selectedTag='', editing=null, github=null, busy=false;
+let cards=[], selectedAgent='', selectedTag='', editing=null, github=null, busy=false;
 const split=value=>[...new Set(value.split(',').map(part=>part.trim()).filter(Boolean))];
 const date=value=>value?value.split('-').reverse().join('/'):'Sin fecha';
 const status=message=>{by('status').textContent=message};
@@ -179,6 +180,7 @@ by('forget').onclick=()=>{
  github=null;
  cards=[];
  selectedTag='';
+ selectedAgent='';
  connectionForm.elements.token.value='';
  connectionForm.elements.remember.checked=false;
  by('connection').close();
@@ -213,35 +215,48 @@ lanes.forEach((name,index)=>{
  section.className='lane';section.dataset.lane=index;board.append(section);
 });
 const surfaces=[...board.querySelectorAll('.surface')];
+const agentKey=name=>name.normalize('NFC').toLocaleLowerCase('es');
+const matchesAgent=(card,key)=>!key||split(card.agents||'').some(name=>agentKey(name)===key);
 function assignedAgents(records){
  const counts=new Map();
  for(const card of records){
   const names=new Map();
   for(const name of split(card.agents||'')){
-   const key=name.normalize('NFC').toLocaleLowerCase('es');
+   const key=agentKey(name);
    if(!names.has(key))names.set(key,name);
   }
   for(const [key,name] of names){
    const current=counts.get(key);
    if(current)current.total++;
-   else counts.set(key,{name,total:1});
+   else counts.set(key,{key,name,total:1});
   }
  }
  return [...counts.values()].sort((a,b)=>a.name.localeCompare(b.name,'es'));
 }
 function renderAgents(){
  const agents=assignedAgents(cards);
+ if(!agents.some(agent=>agent.key===selectedAgent))selectedAgent='';
  const list=by('agentList');
  list.replaceChildren();
  list.hidden=!agents.length;
  const empty=by('agentEmpty');
  empty.hidden=Boolean(agents.length);
  empty.textContent=github?'Sin agentes asignados.':'Conecta GitHub para ver los agentes.';
- for(const {name,total} of agents){
+ for(const {key,name,total} of [{key:'',name:'Todos los agentes'},...agents]){
   const row=append(list,'li','','agent-row');
-  append(row,'span',name);
-  const count=append(row,'span',String(total),'agent-total');
-  count.setAttribute('aria-label',total===1?'1 tarjeta asignada':total+' tarjetas asignadas');
+  const control=button(name,()=>{
+   selectedAgent=key===selectedAgent?'':key;
+   render();
+   const active=list.querySelector('[aria-pressed="true"]');
+   active?.focus();
+  });
+  control.classList.toggle('active',key===selectedAgent);
+  control.setAttribute('aria-pressed',String(key===selectedAgent));
+  row.append(control);
+  if(total!==undefined){
+   const count=append(control,'span',String(total),'agent-total');
+   count.setAttribute('aria-label',total===1?'1 tarjeta asignada':total+' tarjetas asignadas');
+  }
  }
 }
 function render(){
@@ -255,7 +270,7 @@ function render(){
  const query=by('search').value.trim().toLocaleLowerCase('es');
  const tags=[...new Set(cards.flatMap(c=>split(c.tags)))].sort((a,b)=>a.localeCompare(b,'es'));
  if(!tags.includes(selectedTag))selectedTag='';
- const visible=cards.filter(c=>(!selectedTag||split(c.tags).includes(selectedTag))&&[c.title,c.type,c.notes,c.agents,c.tags].join(' ').toLocaleLowerCase('es').includes(query));
+ const visible=cards.filter(c=>matchesAgent(c,selectedAgent)&&(!selectedTag||split(c.tags).includes(selectedTag))&&[c.title,c.type,c.notes,c.agents,c.tags].join(' ').toLocaleLowerCase('es').includes(query));
  surfaces.forEach((surface,lane)=>{
   const all=cards.filter(c=>c.lane===lane), shown=visible.filter(c=>c.lane===lane);
   surface.closest('section').querySelector('.count').textContent=shown.length;
