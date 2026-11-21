@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Mesa de trabajo</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f3f5f9;color:#17243b;font:16px system-ui,sans-serif}header{background:#14223a;color:white;padding:16px clamp(18px,4vw,56px);display:flex;align-items:center;gap:12px;font-weight:700}.logo{background:#735bfa;border-radius:10px;padding:7px 10px}.wrap{padding:30px clamp(16px,4vw,56px)}.intro,.lane-head,.actions{display:flex;align-items:center;justify-content:space-between;gap:12px}h1{font-size:clamp(28px,4vw,44px);letter-spacing:-.055em;margin:0}p{margin:8px 0;color:#52617b}.layout{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:18px;margin-top:22px}.board{min-width:0;display:grid;gap:14px}.lane,aside,dialog{background:white;border:1px solid #dbe2ef;border-radius:16px}.lane{overflow:hidden}.lane-head{padding:10px 14px;border-bottom:1px solid #e5eaf3}.lane-head h2,aside h2{margin:0;font-size:16px}.count{color:#52617b;font-weight:500;margin-left:8px}.scroller{overflow:auto}.surface{position:relative;min-width:740px;background:radial-gradient(#d8dfec 1px,transparent 1px) 0 0/18px 18px #f8f9fc}.surface.over{background-color:#eeebff}.card{position:absolute;width:218px;height:132px;background:var(--color);border:1px solid #cdd6e6;border-left:5px solid var(--accent);border-radius:10px;padding:9px 10px;box-shadow:0 3px 7px #16243a15;cursor:grab;touch-action:none;user-select:none;overflow:hidden}.card[data-lane="0"]{--color:#ffedef;--accent:#cc304d}.card[data-lane="1"]{--color:#fff1df;--accent:#ba590d}.card[data-lane="2"]{--color:#e6f7ec;--accent:#23834e}.card.moving{z-index:10;cursor:grabbing;pointer-events:none}.card-top{display:flex;align-items:center;justify-content:space-between;gap:5px}.card strong,.meta{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.card strong{margin:5px 0}.meta{font-size:13px;color:#465572;line-height:1.35}.badge{font-size:13px;font-weight:650}.card button{padding:1px 6px}.chip{font-size:14px;padding:5px 9px}button,input,select,textarea{font:inherit}button{cursor:pointer;border:1px solid #ccd5e5;background:white;color:#17243b;border-radius:8px;padding:7px 10px}button:hover{background:#edf0ff}button.primary{background:#5844db;color:white;border-color:#5844db;font-weight:650}button.active{color:#432db9;background:#ede9ff;border-color:#b9adff}aside{align-self:start;padding:16px}aside input{width:100%;margin:12px 0}#tags,#tagCards{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}#tagCards button{text-align:left;width:100%;overflow-wrap:anywhere}.muted{font-size:14px;color:#52617b}dialog{width:min(560px,calc(100% - 24px));padding:22px;max-height:94vh}dialog::backdrop{background:#14223a88}dialog h2{margin:0 0 14px}form{display:grid;gap:10px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:grid;gap:4px;font-size:14px;font-weight:600;min-width:0}input,select,textarea{min-width:0;padding:7px;border:1px solid #bfcadf;border-radius:7px;background:#fff;color:inherit}textarea{resize:vertical}.danger{color:#a21b35}.check{display:flex;align-items:center}.actions{flex-wrap:wrap}.end{display:flex;gap:7px;margin-left:auto}[hidden]{display:none!important}@media(max-width:780px){.layout{grid-template-columns:1fr}.intro{align-items:flex-start}.wrap{padding-top:20px}}
+*{box-sizing:border-box}body{margin:0;background:#f3f5f9;color:#17243b;font:16px system-ui,sans-serif}header{background:#14223a;color:white;padding:16px clamp(18px,4vw,56px);display:flex;align-items:center;gap:12px;font-weight:700}.logo{background:#735bfa;border-radius:10px;padding:7px 10px}.wrap{padding:30px clamp(16px,4vw,56px)}.intro,.lane-head,.actions{display:flex;align-items:center;justify-content:space-between;gap:12px}h1{font-size:clamp(28px,4vw,44px);letter-spacing:-.055em;margin:0}p{margin:8px 0;color:#52617b}.layout{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:18px;margin-top:22px}.board{min-width:0;display:grid;gap:14px}.lane,dialog{background:white;border:1px solid #dbe2ef;border-radius:16px}.lane{overflow:hidden}.lane-head{padding:10px 14px;border-bottom:1px solid #e5eaf3}.lane-head h2,aside h2{margin:0;font-size:16px}.count{color:#52617b;font-weight:500;margin-left:8px}.scroller{overflow:auto}.surface{position:relative;min-width:740px;background:radial-gradient(#d8dfec 1px,transparent 1px) 0 0/18px 18px #f8f9fc}.surface.over{background-color:#eeebff}.card{position:absolute;width:218px;height:132px;background:var(--color);border:1px solid #cdd6e6;border-left:5px solid var(--accent);border-radius:10px;padding:9px 10px;box-shadow:0 3px 7px #16243a15;cursor:grab;touch-action:none;user-select:none;overflow:hidden}.card[data-lane="0"]{--color:#ffedef;--accent:#cc304d}.card[data-lane="1"]{--color:#fff1df;--accent:#ba590d}.card[data-lane="2"]{--color:#e6f7ec;--accent:#23834e}.card.moving{z-index:10;cursor:grabbing;pointer-events:none}.card-top{display:flex;align-items:center;justify-content:space-between;gap:5px}.card strong,.meta{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.card strong{margin:5px 0}.meta{font-size:13px;color:#465572;line-height:1.35}.badge{font-size:13px;font-weight:650}.card button{padding:1px 6px}.chip{font-size:14px;padding:5px 9px}button,input,select,textarea{font:inherit}button{cursor:pointer;border:1px solid #ccd5e5;background:white;color:#17243b;border-radius:8px;padding:7px 10px}button:hover{background:#edf0ff}button.primary{background:#5844db;color:white;border-color:#5844db;font-weight:650}button.active{color:#432db9;background:#ede9ff;border-color:#b9adff}aside input{width:100%;margin:12px 0}#tags,#tagCards{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}#tagCards button{text-align:left;width:100%;overflow-wrap:anywhere}.muted{font-size:14px;color:#52617b}dialog{width:min(560px,calc(100% - 24px));padding:22px;max-height:94vh}dialog::backdrop{background:#14223a88}dialog h2{margin:0 0 14px}form{display:grid;gap:10px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:grid;gap:4px;font-size:14px;font-weight:600;min-width:0}input,select,textarea{min-width:0;padding:7px;border:1px solid #bfcadf;border-radius:7px;background:#fff;color:inherit}textarea{resize:vertical}.danger{color:#a21b35}.check{display:flex;align-items:center}.actions{flex-wrap:wrap}.end{display:flex;gap:7px;margin-left:auto}[hidden]{display:none!important}@media(max-width:780px){.layout{grid-template-columns:1fr}.intro{align-items:flex-start}.wrap{padding-top:20px}}
 
 .lane[data-lane="0"]{--zone:#fbd1d8;--zone-head:#f6aeba;--dot:#d67384}
 .lane[data-lane="1"]{--zone:#ffe2bd;--zone-head:#ffce90;--dot:#ce8e48}
@@ -30,10 +30,16 @@
  .print-record .print-meta{break-inside:avoid}
  .print-record{border-color:#aaa}
 }
+.sidebar{align-self:start;display:grid;gap:14px;min-width:0}
+.sidebar-panel{background:white;border:1px solid #dbe2ef;border-radius:16px;padding:16px;min-width:0}
+.agent-list{list-style:none;margin:10px 0 0;padding:0}
+.agent-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;overflow-wrap:anywhere}
+.agent-row+.agent-row{border-top:1px solid #e5eaf3}
+.agent-total{flex:none;background:#eef1fa;border-radius:12px;padding:2px 8px;font-size:14px;font-variant-numeric:tabular-nums}
 </style>
 <header><span class="logo" aria-hidden="true">▦</span>Mesa de trabajo <button id="connect" style="margin-left:auto">Conectar GitHub</button></header>
 <main class="wrap"><div class="intro"><div><h1>Tablero de tarjetas</h1><p>Arrastra las tarjetas para organizarlas dentro de cada franja o entre ellas.</p></div><div class="toolbar"><button id="printBoard" type="button">Vista de impresión</button><button class="primary" id="new">＋ Nueva tarjeta</button></div></div>
-<p id="status" role="status">Conecta un repositorio privado de GitHub para cargar tus tarjetas.</p><button id="migrate" hidden>Importar tarjetas de este navegador</button><div class="layout"><div class="board" id="board"></div><aside><h2>Etiquetas</h2><input id="search" type="search" placeholder="Buscar tarjetas" aria-label="Buscar tarjetas"><div id="tags"></div><div id="tagCards"></div></aside></div></main>
+<p id="status" role="status">Conecta un repositorio privado de GitHub para cargar tus tarjetas.</p><button id="migrate" hidden>Importar tarjetas de este navegador</button><div class="layout"><div class="board" id="board"></div><aside class="sidebar"><section class="sidebar-panel" aria-labelledby="tagsTitle"><h2 id="tagsTitle">Etiquetas</h2><input id="search" type="search" placeholder="Buscar tarjetas" aria-label="Buscar tarjetas"><div id="tags"></div><div id="tagCards"></div></section><section class="sidebar-panel" aria-labelledby="agentsTitle"><h2 id="agentsTitle">Agentes</h2><p id="agentEmpty" class="muted"></p><ul id="agentList" class="agent-list"></ul></section></aside></div></main>
 <dialog id="connection"><form id="connectionForm">
 <h2>Conectar GitHub</h2><label>Repositorio privado (cuenta/repositorio)<input name="repo" required pattern="[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+" placeholder="mi-cuenta/mesa-tarjetas"></label>
 <label>Token de acceso con permiso de escritura en Contents<input name="token" type="password" required autocomplete="off"></label>
@@ -207,7 +213,39 @@ lanes.forEach((name,index)=>{
  section.className='lane';section.dataset.lane=index;board.append(section);
 });
 const surfaces=[...board.querySelectorAll('.surface')];
+function assignedAgents(records){
+ const counts=new Map();
+ for(const card of records){
+  const names=new Map();
+  for(const name of split(card.agents||'')){
+   const key=name.normalize('NFC').toLocaleLowerCase('es');
+   if(!names.has(key))names.set(key,name);
+  }
+  for(const [key,name] of names){
+   const current=counts.get(key);
+   if(current)current.total++;
+   else counts.set(key,{name,total:1});
+  }
+ }
+ return [...counts.values()].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+}
+function renderAgents(){
+ const agents=assignedAgents(cards);
+ const list=by('agentList');
+ list.replaceChildren();
+ list.hidden=!agents.length;
+ const empty=by('agentEmpty');
+ empty.hidden=Boolean(agents.length);
+ empty.textContent=github?'Sin agentes asignados.':'Conecta GitHub para ver los agentes.';
+ for(const {name,total} of agents){
+  const row=append(list,'li','','agent-row');
+  append(row,'span',name);
+  const count=append(row,'span',String(total),'agent-total');
+  count.setAttribute('aria-label',total===1?'1 tarjeta asignada':total+' tarjetas asignadas');
+ }
+}
 function render(){
+ renderAgents();
  by('new').disabled=!github||busy;
  by('connect').textContent=github?'Gestionar conexión':'Conectar GitHub';
  by('connect').disabled=busy;
