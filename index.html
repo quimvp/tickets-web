@@ -44,10 +44,16 @@ header{flex-wrap:wrap}
 .header-tools .toolbar{align-items:center}
 .header-tools button{white-space:nowrap}
 @media(max-width:600px){header{flex-wrap:wrap}.header-tools{margin-left:0;width:100%;justify-content:flex-start}#headerClock{margin-left:auto}}
+.archive-board{min-width:0}
+.archive-board .lane-head{background:#e8edf5}
+.archive-canvas{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,218px),1fr));gap:12px;padding:14px;min-height:156px;background:#f8f9fc}
+.archive-canvas .card{position:relative;inset:auto!important;width:100%;cursor:default;touch-action:auto;user-select:text}
+.archive-empty{grid-column:1/-1}
+#archiveToggle{width:100%}
 </style>
 <header><div class="header-brand"><span class="logo" aria-hidden="true">▦</span><h1 class="board-title">Tablero de tarjetas</h1></div><div class="header-tools"><div class="toolbar"><button id="printBoard" type="button">Vista de impresión</button><button class="primary" id="new">＋ Nueva tarjeta</button></div><button id="connect">Conectar GitHub</button><time id="headerClock"></time></div></header>
 <main class="wrap">
-<p id="status" role="status">Conecta un repositorio privado de GitHub para cargar tus tarjetas.</p><button id="migrate" hidden>Importar tarjetas de este navegador</button><div class="layout"><div class="board" id="board"></div><aside class="sidebar"><section class="sidebar-panel" aria-labelledby="tagsTitle"><h2 id="tagsTitle">Etiquetas</h2><input id="search" type="search" placeholder="Buscar tarjetas" aria-label="Buscar tarjetas"><div id="tags"></div><div id="tagCards"></div></section><section class="sidebar-panel" aria-labelledby="agentsTitle"><h2 id="agentsTitle">Agentes</h2><p id="agentEmpty" class="muted"></p><ul id="agentList" class="agent-list"></ul></section></aside></div></main>
+<p id="status" role="status">Conecta un repositorio privado de GitHub para cargar tus tarjetas.</p><button id="migrate" hidden>Importar tarjetas de este navegador</button><div class="layout"><div class="board" id="board"></div><section id="archiveBoard" class="lane archive-board" aria-labelledby="archiveTitle" hidden><div class="lane-head"><h2 id="archiveTitle">Archivadas <span class="count" id="archiveCount"></span></h2></div><div class="archive-canvas" id="archiveCanvas"></div></section><aside class="sidebar"><section class="sidebar-panel" aria-labelledby="tagsTitle"><h2 id="tagsTitle">Etiquetas</h2><input id="search" type="search" placeholder="Buscar tarjetas" aria-label="Buscar tarjetas"><div id="tags"></div><div id="tagCards"></div></section><section class="sidebar-panel" aria-labelledby="agentsTitle"><h2 id="agentsTitle">Agentes</h2><p id="agentEmpty" class="muted"></p><ul id="agentList" class="agent-list"></ul></section><button id="archiveToggle" type="button" aria-pressed="false">Ver archivadas</button></aside></div></main>
 <dialog id="connection"><form id="connectionForm">
 <h2>Conectar GitHub</h2><label>Repositorio privado (cuenta/repositorio)<input name="repo" required pattern="[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+" placeholder="mi-cuenta/mesa-tarjetas"></label>
 <label>Token de acceso con permiso de escritura en Contents<input name="token" type="password" required autocomplete="off"></label>
@@ -56,7 +62,7 @@ header{flex-wrap:wrap}
 <button type="button" id="forget" hidden>Desconectar y olvidar token</button>
 <p id="connectError" role="alert"></p>
 <div class="end"><button type="button" data-close="connection">Cancelar</button><button class="primary">Conectar</button></div>
-</form></dialog><dialog id="editor"><form id="form"><h2 id="editorTitle"></h2><label>Título<input name="title" required maxlength="120"></label><label>Descripción<textarea name="notes" rows="2"></textarea></label><div class="fields"><label>Tipo<select name="type"><option>Ticket</option><option>Solicitud</option><option>Reunión</option><option>Desarrollo</option></select></label><label>Franja<select name="lane"></select></label><label>Entrada<input name="entry" type="date" required></label><label>Cierre<input name="close" type="date"></label><label>Prioridad<select name="priority"><option value="">Sin prioridad</option><option>Alta</option><option>Media</option><option>Baja</option></select></label></div><label>Agentes (separados por comas)<input name="agents"></label><label>Etiquetas (separadas por comas)<input name="tags"></label><div class="actions"><button type="button" id="remove" class="danger">Borrar</button><button type="button" id="duplicate" hidden>Duplicar</button><div class="export-tools" id="export" hidden role="group" aria-label="Exportar tarjeta"><button type="button" data-format="md">Markdown</button><button type="button" data-format="txt">TXT</button><button type="button" data-format="pdf">PDF</button></div><div class="end"><button type="button" data-close="editor">Cancelar</button><button class="primary">Guardar</button></div></div></form></dialog>
+</form></dialog><dialog id="editor"><form id="form"><h2 id="editorTitle"></h2><label>Título<input name="title" required maxlength="120"></label><label>Descripción<textarea name="notes" rows="2"></textarea></label><div class="fields"><label>Tipo<select name="type"><option>Ticket</option><option>Solicitud</option><option>Reunión</option><option>Desarrollo</option></select></label><label>Franja<select name="lane"></select></label><label>Entrada<input name="entry" type="date" required></label><label>Cierre<input name="close" type="date"></label><label>Prioridad<select name="priority"><option value="">Sin prioridad</option><option>Alta</option><option>Media</option><option>Baja</option></select></label></div><label>Agentes (separados por comas)<input name="agents"></label><label>Etiquetas (separadas por comas)<input name="tags"></label><div class="actions"><button type="button" id="remove" class="danger">Borrar</button><button type="button" id="archiveCard" hidden>Archivar</button><button type="button" id="duplicate" hidden>Duplicar</button><div class="export-tools" id="export" hidden role="group" aria-label="Exportar tarjeta"><button type="button" data-format="md">Markdown</button><button type="button" data-format="txt">TXT</button><button type="button" data-format="pdf">PDF</button></div><div class="end"><button type="button" data-close="editor">Cancelar</button><button class="primary">Guardar</button></div></div></form></dialog>
 <dialog id="deletion"><form id="deleteForm"><h2>Borrar tarjeta</h2><p id="deleteText"></p><label class="check"><input type="checkbox" required> Autorizo quitar la tarjeta del tablero</label><div class="end"><button type="button" data-close="deletion">Cancelar</button><button class="danger">Borrar tarjeta</button></div></form></dialog>
 <dialog id="duplicateDialog" aria-labelledby="duplicateTitle">
 <form id="duplicateForm"><h2 id="duplicateTitle">Duplicar tarjeta</h2><label>Nombre del duplicado<input name="title" required maxlength="120"></label><div class="end"><button type="button" data-close="duplicateDialog">Cancelar</button><button class="primary">Crear duplicado</button></div></form>
@@ -85,7 +91,7 @@ setInterval(updateHeaderClock,1000);
 const form=by('form'),editor=by('editor'),deletion=by('deletion'),board=by('board');
 const field=name=>form.elements.namedItem(name);
 const today=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid'}).format(new Date());
-let cards=[], selectedAgent='', selectedTag='', editing=null, github=null, busy=false;
+let cards=[], showingArchive=false, selectedAgent='', selectedTag='', editing=null, github=null, busy=false;
 const split=value=>[...new Set(value.split(',').map(part=>part.trim()).filter(Boolean))];
 const date=value=>value?value.split('-').reverse().join('/'):'Sin fecha';
 const status=message=>{by('status').textContent=message};
@@ -202,6 +208,7 @@ by('forget').onclick=()=>{
  const removed=storeConnection(null);
  github=null;
  cards=[];
+ showingArchive=false;
  selectedTag='';
  selectedAgent='';
  connectionForm.elements.token.value='';
@@ -256,8 +263,8 @@ function assignedAgents(records){
  }
  return [...counts.values()].sort((a,b)=>a.name.localeCompare(b.name,'es'));
 }
-function renderAgents(){
- const agents=assignedAgents(cards);
+function renderAgents(records){
+ const agents=assignedAgents(records);
  if(!agents.some(agent=>agent.key===selectedAgent))selectedAgent='';
  const list=by('agentList');
  list.replaceChildren();
@@ -284,7 +291,9 @@ function renderAgents(){
 }
 function render(){
  setTimeout(showOverdue,0);
- renderAgents();
+ const active=cards.filter(card=>!card.archived);
+ renderArchive();
+ renderAgents(active);
  by('new').disabled=!github||busy;
  by('connect').textContent=github?'Gestionar conexión':'Conectar GitHub';
  by('connect').disabled=busy;
@@ -292,11 +301,11 @@ function render(){
  by('printBoard').disabled=!github;
  by('migrate').hidden=!github||!legacyCards().length;
  const query=by('search').value.trim().toLocaleLowerCase('es');
- const tags=[...new Set(cards.flatMap(c=>split(c.tags)))].sort((a,b)=>a.localeCompare(b,'es'));
+ const tags=[...new Set(active.flatMap(c=>split(c.tags)))].sort((a,b)=>a.localeCompare(b,'es'));
  if(!tags.includes(selectedTag))selectedTag='';
- const visible=cards.filter(c=>matchesAgent(c,selectedAgent)&&(!selectedTag||split(c.tags).includes(selectedTag))&&[c.title,c.type,c.notes,c.agents,c.tags].join(' ').toLocaleLowerCase('es').includes(query));
+ const visible=active.filter(c=>matchesAgent(c,selectedAgent)&&(!selectedTag||split(c.tags).includes(selectedTag))&&[c.title,c.type,c.notes,c.agents,c.tags].join(' ').toLocaleLowerCase('es').includes(query));
  surfaces.forEach((surface,lane)=>{
-  const all=cards.filter(c=>c.lane===lane), shown=visible.filter(c=>c.lane===lane);
+  const all=active.filter(c=>c.lane===lane), shown=visible.filter(c=>c.lane===lane);
   surface.closest('section').querySelector('.count').textContent=shown.length;
   surface.style.minWidth=Math.max(740,...all.map(c=>c.x+248))+'px';
   surface.style.height=Math.max(156,...all.map(c=>c.y+146))+'px';
@@ -309,6 +318,25 @@ function render(){
  by('tagCards').replaceChildren(...tagged.map(c=>button(c.title,()=>openCard(c))));
  if(!tagged.length)append(by('tagCards'),'span','Sin tarjetas con etiquetas','muted');
 }
+function renderArchive(){
+ const archived=cards.filter(card=>card.archived);
+ board.hidden=showingArchive;
+ by('archiveBoard').hidden=!showingArchive;
+ by('archiveToggle').disabled=!github||busy;
+ by('archiveToggle').textContent=showingArchive?'Volver al tablero':'Ver archivadas';
+ by('archiveToggle').setAttribute('aria-pressed',String(showingArchive));
+ document.querySelectorAll('.sidebar-panel').forEach(panel=>{panel.hidden=showingArchive});
+ if(!showingArchive)return;
+ by('archiveCount').textContent=archived.length;
+ const canvas=by('archiveCanvas');
+ canvas.replaceChildren(...archived.map(drawCard));
+ if(!archived.length)append(canvas,'p','No hay tarjetas archivadas.','archive-empty');
+}
+by('archiveToggle').onclick=()=>{
+ if(!github||busy)return;
+ showingArchive=!showingArchive;
+ render();
+};
 function drawCard(c){
  const el=document.createElement('article');el.className='card';el.style.left=c.x+'px';el.style.top=c.y+'px';
  el.dataset.lane=c.lane;
@@ -318,7 +346,8 @@ function drawCard(c){
  append(el,'span','Entrada '+date(c.entry),'meta');
  append(el,'span','Cierre '+date(c.close),'meta');
  append(el,'span',c.agents||'Sin agentes','meta').title=c.agents;
- el.addEventListener('pointerdown',event=>startDrag(event,el,c));return el;
+ if(!c.archived)el.addEventListener('pointerdown',event=>startDrag(event,el,c));
+ return el;
 }
 function startDrag(event,el,c){
  if(busy||event.button!==0||event.target.closest('button'))return;
@@ -352,7 +381,7 @@ function startDrag(event,el,c){
  el.addEventListener('pointermove',move);el.addEventListener('pointerup',finish);el.addEventListener('pointercancel',finish);
 }
 function newCardPosition(lane){
- return {x:12,y:Math.max(12,...cards.filter(c=>c.lane===lane).map(c=>c.y+144))};
+ return {x:12,y:Math.max(12,...cards.filter(c=>!c.archived&&c.lane===lane).map(c=>c.y+144))};
 }
 const newCardId=()=>globalThis.crypto?.randomUUID?.()??String(Date.now());
 const duplicateForm=by('duplicateForm');
@@ -371,7 +400,7 @@ duplicateForm.onsubmit=async event=>{
  const field=duplicateForm.elements.namedItem('title');
  const title=field.value.trim();
  if(!title){field.value='';field.reportValidity();return}
- const duplicate={...source,...newCardPosition(source.lane),id:newCardId(),sha:undefined,title,entry:today(),close:''};
+ const duplicate={...source,...newCardPosition(source.lane),id:newCardId(),sha:undefined,archived:false,title,entry:today(),close:''};
  if(await change(()=>writeCard(duplicate))){
   by('duplicateDialog').close();
   editor.close();
@@ -382,7 +411,7 @@ function openCard(card,lane=1){
  editing=card?.id??null;form.reset();field('close').setCustomValidity('');
  const values=card??{type:lane===2?'Desarrollo':'Ticket',lane,entry:today()};
  for(const [name,value] of Object.entries(values)){const input=field(name);if(input)input.value=value}
- by('editorTitle').textContent=card?'Editar tarjeta':'Nueva tarjeta';by('remove').hidden=!card;by('export').hidden=!card;by('duplicate').hidden=!card;editor.showModal();field('title').focus();
+ by('editorTitle').textContent=card?'Editar tarjeta':'Nueva tarjeta';by('remove').hidden=!card;by('export').hidden=!card;by('duplicate').hidden=!card||Boolean(card.archived);by('archiveCard').hidden=!card;by('archiveCard').textContent=card?.archived?'Restaurar':'Archivar';editor.showModal();field('title').focus();
 }
 field('close').oninput=field('entry').oninput=()=>field('close').setCustomValidity('');
 form.onsubmit=async e=>{
@@ -392,7 +421,7 @@ form.onsubmit=async e=>{
  values.lane=Number(values.lane);
  const previous=cards.find(c=>c.id===editing);
  const position=previous?.lane===values.lane?{x:previous.x,y:previous.y}:newCardPosition(values.lane);
- const card={...values,...position,sha:previous?.sha,id:previous?.id??newCardId()};
+ const card={...values,...position,archived:previous?.archived??false,sha:previous?.sha,id:previous?.id??newCardId()};
  if(await change(()=>writeCard(card)))editor.close();
 };
 function cardDetails(card){
@@ -443,9 +472,9 @@ function printOrder(records,order){
 }
 let previewCard=null;
 function renderPreview(){
- const records=previewCard?[previewCard]:printOrder(cards,by('sortOrder').value);
+ const records=previewCard?[previewCard]:printOrder(cards.filter(card=>Boolean(card.archived)===showingArchive),by('sortOrder').value);
  by('sortControl').hidden=Boolean(previewCard);
- by('previewTitle').textContent=previewCard?'Ficha de tarjeta':'Listado de tarjetas';
+ by('previewTitle').textContent=previewCard?'Ficha de tarjeta':showingArchive?'Listado de tarjetas archivadas':'Listado de tarjetas';
  const list=by('printRecords');
  list.replaceChildren();
  if(!records.length)append(list,'p','No hay tarjetas para imprimir.');
@@ -491,6 +520,11 @@ document.querySelectorAll('[data-format]').forEach(control=>{
 by('new').onclick=()=>openCard(null);
 by('search').oninput=render;
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>by(b.dataset.close).close());
+by('archiveCard').onclick=async ()=>{
+ const card=cards.find(item=>item.id===editing);
+ if(!card)return;
+ if(await change(()=>writeCard({...card,archived:!card.archived})))editor.close();
+};
 by('remove').onclick=()=>{by('deleteForm').reset();by('deleteText').textContent=cards.find(c=>c.id===editing).title;deletion.showModal()};
 by('deleteForm').onsubmit=async e=>{
  e.preventDefault();
@@ -521,7 +555,7 @@ function showOverdue(){
  const current=today();
  const overdue=cards.filter(card=>{
   const due=monthAfter(card.entry);
-  return !card.close&&due&&due<=current&&!notified.has(card.id);
+  return !card.archived&&!card.close&&due&&due<=current&&!notified.has(card.id);
  });
  if(!overdue.length)return;
  const list=by('overdueList');
