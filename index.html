@@ -37,7 +37,9 @@
 <dialog id="connection"><form id="connectionForm">
 <h2>Conectar GitHub</h2><label>Repositorio privado (cuenta/repositorio)<input name="repo" required pattern="[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+" placeholder="mi-cuenta/mesa-tarjetas"></label>
 <label>Token de acceso con permiso de escritura en Contents<input name="token" type="password" required autocomplete="off"></label>
-<p class="muted">El repositorio debe tener una rama inicial. El token se usa durante esta sesión.</p>
+<label class="check"><input type="checkbox" name="remember"> Recordar conexión en este navegador</label>
+<p class="muted">Esta opción guarda el token en los datos del sitio. Úsala solo en un navegador de confianza. Otras páginas del mismo dominio pueden acceder a estos datos.</p>
+<button type="button" id="forget" hidden>Desconectar y olvidar token</button>
 <p id="connectError" role="alert"></p>
 <div class="end"><button type="button" data-close="connection">Cancelar</button><button class="primary">Conectar</button></div>
 </form></dialog><dialog id="editor"><form id="form"><h2 id="editorTitle"></h2><label>Título<input name="title" required maxlength="120"></label><label>Descripción<textarea name="notes" rows="2"></textarea></label><div class="fields"><label>Tipo<select name="type"><option>Ticket</option><option>Solicitud</option><option>Reunión</option><option>Desarrollo</option></select></label><label>Franja<select name="lane"></select></label><label>Entrada<input name="entry" type="date" required></label><label>Cierre<input name="close" type="date"></label><label>Prioridad<select name="priority"><option value="">Sin prioridad</option><option>Alta</option><option>Media</option><option>Baja</option></select></label></div><label>Agentes (separados por comas)<input name="agents"></label><label>Etiquetas (separadas por comas)<input name="tags"></label><div class="actions"><button type="button" id="remove" class="danger">Borrar</button><div class="export-tools" id="export" hidden role="group" aria-label="Exportar tarjeta"><button type="button" data-format="md">Markdown</button><button type="button" data-format="txt">TXT</button><button type="button" data-format="pdf">PDF</button></div><div class="end"><button type="button" data-close="editor">Cancelar</button><button class="primary">Guardar</button></div></div></form></dialog>
@@ -107,28 +109,76 @@ function legacyCards(){
  try{const list=JSON.parse(localStorage.getItem(key)??'[]');return Array.isArray(list)?list:[]}
  catch{return []}
 }
-by('connectionForm').onsubmit=async event=>{
- event.preventDefault();
- if(busy)return;
- const form=event.currentTarget;
- const connection={repo:form.elements.repo.value.trim(),token:form.elements.token.value.trim()};
- form.elements.token.value='';
- by('connectError').textContent='';
+const connectionKey='mesa-trabajo-github-connection-v1';
+const connectionForm=by('connectionForm');
+function rememberedConnection(){
+ try{
+  const saved=JSON.parse(localStorage.getItem(connectionKey));
+  if(saved&&/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(saved.repo)&&typeof saved.token==='string'&&saved.token)return saved;
+ }catch{}
+ return null;
+}
+function storeConnection(connection){
+ try{
+  if(connection)localStorage.setItem(connectionKey,JSON.stringify(connection));
+  else localStorage.removeItem(connectionKey);
+  return true;
+ }catch{return false}
+}
+async function connectGithub(connection,remember,{restore=false}={}){
+ if(busy)return false;
  busy=true;
+ status('Conectando a GitHub…');
+ by('connectError').textContent='';
  try{
   const repo=await request(connection,'');
   if(!repo.private)throw Error('Selecciona un repositorio privado para las tarjetas.');
   const branch=await request(connection,'/branches/'+encodeURIComponent(repo.default_branch));
   if(!branch.commit)throw Error('Crea una rama inicial en el repositorio.');
   const loaded=await loadCards(connection);
-  github=connection;cards=loaded;
+  github=connection;
+  cards=loaded;
+  const saved=restore||storeConnection(remember?connection:null);
   by('connection').close();
-  by('connect').textContent='Cambiar conexión';
-  status('Conectado a '+github.repo);
- }catch(error){by('connectError').textContent=error.message}
- finally{busy=false;render()}
+  status('Conectado a '+github.repo+(saved?'':' · No se pudo cambiar la conexión guardada.'));
+  return true;
+ }catch(error){
+  if(restore&&error.status===401)storeConnection(null);
+  by('connectError').textContent=error.message;
+  status(github?'Conectado a '+github.repo:'No se pudo conectar a GitHub. Abre Conectar GitHub para volver a intentarlo.');
+  return false;
+ }finally{
+  busy=false;
+  render();
+ }
+}
+connectionForm.onsubmit=async event=>{
+ event.preventDefault();
+ if(busy)return;
+ const {repo,token,remember}=connectionForm.elements;
+ const connection={repo:repo.value.trim(),token:token.value.trim()};
+ const ok=await connectGithub(connection,remember.checked);
+ if(ok)token.value='';
 };
-by('connect').onclick=()=>{if(!busy)by('connection').showModal()};
+by('connect').onclick=()=>{
+ if(busy)return;
+ const saved=rememberedConnection();
+ connectionForm.elements.repo.value=github?.repo??saved?.repo??connectionForm.elements.repo.value;
+ connectionForm.elements.remember.checked=Boolean(saved);
+ by('connection').showModal();
+};
+by('forget').onclick=()=>{
+ if(busy)return;
+ const removed=storeConnection(null);
+ github=null;
+ cards=[];
+ selectedTag='';
+ connectionForm.elements.token.value='';
+ connectionForm.elements.remember.checked=false;
+ by('connection').close();
+ status(removed?'Conexión olvidada. Conecta GitHub para cargar tus tarjetas.':'Sesión cerrada. Borra los datos de este sitio en el navegador para eliminar el token guardado.');
+ render();
+};
 by('migrate').onclick=async ()=>{
  const previous=legacyCards();
  await change(async ()=>{
@@ -159,6 +209,9 @@ lanes.forEach((name,index)=>{
 const surfaces=[...board.querySelectorAll('.surface')];
 function render(){
  by('new').disabled=!github||busy;
+ by('connect').textContent=github?'Gestionar conexión':'Conectar GitHub';
+ by('connect').disabled=busy;
+ by('forget').hidden=!github&&!rememberedConnection();
  by('printBoard').disabled=!github;
  by('migrate').hidden=!github||!legacyCards().length;
  const query=by('search').value.trim().toLocaleLowerCase('es');
@@ -346,4 +399,6 @@ by('deleteForm').onsubmit=async e=>{
  })){deletion.close();editor.close()}
 };
 render();
+const remembered=rememberedConnection();
+if(remembered)connectGithub(remembered,true,{restore:true});
 </script></html>
