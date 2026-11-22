@@ -142,7 +142,7 @@ header{display:grid;grid-template-columns:minmax(max-content,1fr) minmax(190px,3
 <button type="button" id="forget" hidden>Desconectar y olvidar token</button>
 <p id="connectError" role="alert"></p>
 <div class="end"><button type="button" data-close="connection">Cancelar</button><button class="primary">Conectar</button></div>
-</form></dialog><dialog id="editor"><form id="form"><h2 id="editorTitle"></h2><label>Título<input name="title" required maxlength="120"></label><label>Descripción<textarea name="notes" rows="2"></textarea></label><div class="fields"><label>Tipo<select name="type"><option>Ticket</option><option>Solicitud</option><option>Reunión</option><option>Desarrollo</option></select></label><label>Franja<select name="lane"></select></label><label>Entrada<input name="entry" type="date" required></label><label>Cierre<input name="close" type="date"></label><label>Prioridad<select name="priority"><option value="">Sin prioridad</option><option>Alta</option><option>Media</option><option>Baja</option></select></label></div><label class="check"><input type="checkbox" name="reminder"> Avisar si sigue abierta después de dos días</label><label>Agentes (separados por comas)<input name="agents"></label><label>Etiquetas (separadas por comas)<input name="tags"></label><div class="actions"><button type="button" id="remove" class="danger">Borrar</button><button type="button" id="archiveCard" hidden>Archivar</button><button type="button" id="duplicate" hidden>Duplicar</button><div class="export-tools" id="export" hidden role="group" aria-label="Exportar tarjeta"><button type="button" data-format="md">Markdown</button><button type="button" data-format="txt">TXT</button><button type="button" data-format="pdf">PDF</button></div><div class="end"><button type="button" data-close="editor">Cancelar</button><button class="primary">Guardar</button></div></div></form></dialog>
+</form></dialog><dialog id="editor"><form id="form"><h2 id="editorTitle"></h2><label>Título<input name="title" required maxlength="120"></label><label>Descripción<textarea name="notes" rows="2"></textarea></label><div class="fields"><label>Tipo<select name="type"><option>Ticket</option><option>Solicitud</option><option>Reunión</option><option>Desarrollo</option></select></label><label>Franja<select name="lane"></select></label><label>Entrada<input name="entry" type="date" required></label><label>Cierre<input name="close" type="date"></label><label>Prioridad<select name="priority"><option value="">Sin prioridad</option><option>Alta</option><option>Media</option><option>Baja</option></select></label></div><label class="check"><input type="checkbox" name="oneDayDue"> Cerrar automáticamente en 24 horas</label><label class="check"><input type="checkbox" name="reminder"> Avisar si sigue abierta después de dos días</label><label>Agentes (separados por comas)<input name="agents"></label><label>Etiquetas (separadas por comas)<input name="tags"></label><div class="actions"><button type="button" id="remove" class="danger">Borrar</button><button type="button" id="archiveCard" hidden>Archivar</button><button type="button" id="duplicate" hidden>Duplicar</button><div class="export-tools" id="export" hidden role="group" aria-label="Exportar tarjeta"><button type="button" data-format="md">Markdown</button><button type="button" data-format="txt">TXT</button><button type="button" data-format="pdf">PDF</button></div><div class="end"><button type="button" data-close="editor">Cancelar</button><button class="primary">Guardar</button></div></div></form></dialog>
 <dialog id="deletion"><form id="deleteForm"><h2>Borrar tarjeta</h2><p id="deleteText"></p><label class="check"><input type="checkbox" required> Autorizo quitar la tarjeta del tablero</label><div class="end"><button type="button" data-close="deletion">Cancelar</button><button class="danger">Borrar tarjeta</button></div></form></dialog>
 <main id="sharedView" class="shared-view" hidden><article id="sharedCard" class="shared-card"></article></main>
 <dialog id="shareDialog" aria-labelledby="shareTitle">
@@ -202,7 +202,8 @@ updateHeaderClock();
 setInterval(updateHeaderClock,1000);
 const form=by('form'),editor=by('editor'),deletion=by('deletion'),board=by('board');
 const field=name=>form.elements.namedItem(name);
-const today=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid'}).format(new Date());
+const madridDate=value=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid'}).format(value);
+const today=()=>madridDate(new Date());
 let cards=[], showingArchive=false, selectedAgent='', selectedTag='', editing=null, github=null, busy=false;
 const split=value=>[...new Set(value.split(',').map(part=>part.trim()).filter(Boolean))];
 const date=value=>value?value.split('-').reverse().join('/'):'Sin fecha';
@@ -295,7 +296,32 @@ async function dissolveCard(id){
  }
  await animation.finished.catch(()=>{});
 }
-async function writeCard(card){
+const oneDayMs=86400000;
+const hasOneDayTimer=card=>Number.isFinite(card?.oneDayDue)&&card.oneDayDue>0;
+function oneDaySettings(previous,enabled,now=Date.now()){
+ if(!enabled)return {oneDayDue:null,oneDayChanged:false};
+ return hasOneDayTimer(previous)
+  ?{oneDayDue:previous.oneDayDue,oneDayChanged:previous.oneDayChanged===true}
+  :{oneDayDue:now+oneDayMs,oneDayChanged:false};
+}
+function oneDayExpired(card,now){
+ return !isArchived(card)&&hasOneDayTimer(card)&&card.oneDayDue<=now;
+}
+function closeOneDayCard(card){
+ const note=card.oneDayChanged?'Cierre automático: con cambios.':'Cierre automático: sin cambios.';
+ return {...card,close:madridDate(new Date(card.oneDayDue)),archived:true,
+  notes:[card.notes,note].filter(Boolean).join('\n\n')};
+}
+async function closeExpiredOneDayCards(){
+ if(!github||busy||document.hidden||document.querySelector('dialog[open]'))return;
+ const now=Date.now();
+ if(!cards.some(card=>oneDayExpired(card,now)))return;
+ await change(async ()=>{
+  cards=await loadCards(github);
+  for(const card of cards.filter(item=>oneDayExpired(item,now)))await writeCard(closeOneDayCard(card),{automatic:true});
+ },{background:true});
+}
+async function writeCard(card,{automatic=false}={}){
  const previous=cards.find(item=>item.id===card.id);
  if(isActiveUrgent(card)&&!cards.some(item=>item.id===card.id&&isActiveUrgent(item))){
   const latest=await loadCards(github);
@@ -306,20 +332,24 @@ async function writeCard(card){
  }
  const {sha,...record}=card;
  record.archived=isArchived(record);
+ if(!automatic&&hasOneDayTimer(record)&&record.oneDayDue===previous?.oneDayDue){
+  const fields=['title','notes','type','lane','entry','priority','agents','tags','reminder'];
+  record.oneDayChanged=previous.oneDayChanged===true||fields.some(field=>(previous[field]??'')!==(record[field]??''));
+ }
  const content=encode('<!-- mesa-de-trabajo '+encode(JSON.stringify(record))+' -->\n'+cardMarkdown(record));
  const result=await request(github,filePath(card.id),'PUT',{message:'Guardar tarjeta '+card.id,content,sha});
  cards=cards.filter(item=>item.id!==card.id).concat({...record,sha:result.content.sha});
  if(previous&&!isArchived(previous)&&isArchived(record))await dissolveCard(record.id);
  if(isActiveUrgent(record)&&!isActiveUrgent(previous))playUrgentBeep();
 }
-async function change(action){
+async function change(action,{background=false}={}){
  if(!github||busy)return false;
  busy=true;
  status('Guardando en GitHub…');
  try{await action();status('Conectado a '+github.repo);return true}
  catch(error){
-  alert(error.urgentLimitReached?error.message:error.message+' Recarga el tablero si la tarjeta cambió en otro dispositivo.');
-  status('No se pudo completar la operación en GitHub.');
+  if(!background)alert(error.urgentLimitReached?error.message:error.message+' Recarga el tablero si la tarjeta cambió en otro dispositivo.');
+  status(background?'No se pudo guardar el cierre automático. Se volverá a intentar.':'No se pudo completar la operación en GitHub.');
   return false;
  }finally{busy=false;render()}
 }
@@ -356,6 +386,7 @@ async function connectGithub(connection,remember,{restore=false}={}){
   const loaded=await loadCards(connection);
   github=connection;
   cards=loaded;
+  setTimeout(closeExpiredOneDayCards,0);
   const saved=restore||storeConnection(remember?connection:null);
   by('connection').close();
   status('Conectado a '+github.repo+(saved?'':' · No se pudo cambiar la conexión guardada.'));
@@ -664,7 +695,7 @@ duplicateForm.onsubmit=async event=>{
  const field=duplicateForm.elements.namedItem('title');
  const title=field.value.trim();
  if(!title){field.value='';field.reportValidity();return}
- const duplicate={...source,...newCardPosition(source.lane),id:newCardId(),sha:undefined,archived:false,title,entry:today(),close:'',reminderAt:0};
+ const duplicate={...source,...newCardPosition(source.lane),id:newCardId(),sha:undefined,archived:false,title,entry:today(),close:'',reminderAt:0,...oneDaySettings(null,hasOneDayTimer(source))};
  if(await change(()=>writeCard(duplicate))){
   by('duplicateDialog').close();
   editor.close();
@@ -672,20 +703,27 @@ duplicateForm.onsubmit=async event=>{
 };
 function openCard(card,lane=1){
  if(!github||busy)return;
- editing=card?.id??null;form.reset();field('close').setCustomValidity('');
+ editing=card?.id??null;form.reset();field('close').setCustomValidity('');field('entry').setCustomValidity('');
  const values=card??{type:lane===2?'Desarrollo':'Ticket',lane,entry:today()};
  for(const [name,value] of Object.entries(values)){const input=field(name);if(input&&input.type!=='checkbox')input.value=value}
  field('reminder').checked=card?.reminder===true;
+ field('oneDayDue').checked=!isArchived(card)&&hasOneDayTimer(card);
+ field('oneDayDue').disabled=isArchived(card);
  by('editorTitle').textContent=card?'Editar tarjeta':'Nueva tarjeta';by('remove').hidden=!card;by('export').hidden=!card;by('duplicate').hidden=!card||isArchived(card);by('archiveCard').hidden=!card;by('archiveCard').textContent=isArchived(card)?'Restaurar':'Archivar';editor.showModal();field('title').focus();
 }
-field('close').oninput=field('entry').oninput=()=>field('close').setCustomValidity('');
+field('close').oninput=field('entry').oninput=field('oneDayDue').onchange=()=>{
+ field('close').setCustomValidity('');
+ field('entry').setCustomValidity('');
+};
 form.onsubmit=async e=>{
  e.preventDefault();const values=Object.fromEntries(new FormData(form));values.title=values.title.trim();
  if(!values.title){field('title').value='';field('title').reportValidity();return}
  if(values.close&&values.close<values.entry){field('close').setCustomValidity('El cierre debe ser igual o posterior a la entrada.');field('close').reportValidity();return}
  values.lane=Number(values.lane);
  const previous=cards.find(c=>c.id===editing);
- Object.assign(values,reminderSettings(previous,field('reminder').checked));
+ const timed=field('oneDayDue').checked;
+ if(timed&&values.entry>today()){field('entry').setCustomValidity('Una tarjeta de 24 horas requiere una entrada de hoy o anterior.');field('entry').reportValidity();return}
+ Object.assign(values,reminderSettings(previous,field('reminder').checked),oneDaySettings(previous,timed));
  const position=previous?.lane===values.lane?{x:previous.x,y:previous.y}:newCardPosition(values.lane);
  const card={...values,...position,archived:previous?.archived??false,sha:previous?.sha,id:previous?.id??newCardId()};
  if(await change(()=>writeCard(card)))editor.close();
@@ -856,7 +894,7 @@ by('openPalette').onclick=()=>{
  renderPalette();
  by('paletteDialog').showModal();
 };
-const helpMarkdown="## Conectar y empezar\n- Pulsa **Conectar GitHub**, indica tu repositorio privado (por ejemplo, quimvp/tickets) y usa un token con permiso **Contents → Read and write**.\n- **Recordar conexión en este navegador** vuelve a conectar al abrir el tablero. Usa esta opción en un navegador de confianza. Para borrar el token guardado, abre **Gestionar conexión → Desconectar y olvidar token**.\n- Las tarjetas se guardan como archivos Markdown en la carpeta **tarjetas/** del repositorio. Si aparece **Importar tarjetas de este navegador**, puedes migrar tarjetas antiguas guardadas localmente.\n\n## Usar el lienzo\n- En el menú superior izquierdo, **Paleta de colores** muestra las muestras y los códigos HEX de las zonas, las tarjetas y la interfaz.\n- **Nueva tarjeta** abre una ficha. El botón **＋** de una zona crea la tarjeta directamente en esa zona.\n- Las tres zonas son **Tickets urgentes**, **Tickets y solicitudes** y **Desarrollos**. Arrastra las tarjetas dentro de una zona o entre zonas. Las tarjetas cambian de color según la zona.\n- **Urgentes** admite hasta tres tarjetas abiertas. Una tarjeta nueva que entre en esa zona emite un pitido después de guardarse.\n- Arrastra la muesca inferior de cada zona para ajustar su altura. Haz doble clic para restablecerla. También puedes enfocar el tirador y usar las flechas arriba y abajo.\n- El pie muestra el total de tarjetas abiertas, el tiempo medio de cierre, el agente con más asignaciones activas, los desarrollos activos, el repositorio, el estado de la conexión y la versión.\n\n## Editar, duplicar y archivar\n- Pulsa una tarjeta del lienzo o su botón **⋯** para editarla. Puedes cambiar el título, la descripción, el tipo, la zona, las fechas, la prioridad, los agentes y las etiquetas. Separa varios agentes o etiquetas con comas.\n- Los tipos disponibles son **Ticket**, **Solicitud**, **Reunión** y **Desarrollo**.\n- **Duplicar** propone el título original. La copia conserva los datos de la ficha, empieza con la fecha de entrada de hoy y queda abierta.\n- Al registrar una **fecha de cierre** o pulsar **Archivar**, la tarjeta sale del tablero principal. Si está visible, aparece un efecto de desintegración.\n- **Ver archivadas**, al pie de la barra lateral, reúne las tarjetas archivadas en un solo lienzo. Abre el menú **⋯** de una tarjeta y pulsa **Restaurar** para reabrirla en **Tickets y solicitudes**. Se borra su fecha de cierre.\n- **Borrar** pide confirmación antes de quitar la tarjeta.\n\n## Buscar y filtrar\n- En la barra superior, **Buscar por palabras** abre un lienzo emergente con las tarjetas activas y archivadas que contienen al menos una de las palabras escritas. Busca en el título, la descripción, el tipo, los agentes, las etiquetas, la prioridad y la zona, sin distinguir mayúsculas ni tildes.\n- Usa **fecha:22/11/2026** para buscar por entrada o cierre, o **entrada:2026-11-22** y **cierre:2026-11-22** para comparar un campo concreto. **agente:\"Ana Ruiz\"**, **prioridad:alta** y **avisos:sí** filtran por agente, prioridad y casilla de aviso activada. Puedes usar **avisos:no** para buscar avisos desactivados. Si combinas filtros, la tarjeta debe cumplirlos todos y contener al menos una de las palabras libres, si las escribes.\n- **Buscar tarjetas** filtra por texto. En **Etiquetas**, pulsa una etiqueta para mostrar las tarjetas correspondientes y **Todas** para quitar ese filtro.\n- En **Agentes**, pulsa un nombre para ver sus tarjetas y **Todos los agentes** para quitar ese filtro. El número junto a cada nombre indica sus asignaciones activas.\n- La búsqueda y los filtros de etiquetas y agentes se pueden combinar. El archivo reúne todas las tarjetas archivadas sin esos filtros.\n\n## Avisos\n- En la ficha, marca **Avisar si sigue abierta después de dos días**. El tablero muestra un aviso cuando han pasado más de dos días desde la entrada y la tarjeta sigue abierta. **Avisos** permite consultar los pendientes.\n- Tras el aviso, **¿Mantener el aviso?** propone **No**. Al guardar con **No**, se desmarca la casilla. Si eliges **Sí** o vuelves a activar manualmente el aviso, la tarjeta espera 24 horas antes de volver a avisar.\n- Las tarjetas activas sin fecha de cierre también tienen un aviso independiente al cumplir un mes natural desde la entrada.\n\n## Compartir, exportar e imprimir\n- El icono **Compartir** de una tarjeta permite preparar un borrador de **Correo** con sus datos en el cuerpo o crear un enlace para copiar o enviar por **WhatsApp**.\n- El enlace muestra una copia de la tarjeta. Cualquiera que tenga el enlace puede ver esa copia, que conserva los datos del momento en que se creó.\n- En una tarjeta guardada, elige **Markdown**, **TXT** o **PDF** para exportarla. Para PDF, abre la vista de impresión y elige **Guardar como PDF**.\n- En el menú superior izquierdo, **Listar / imprimir tarjetas activas** abre el listado completo, ordenable por fecha o por prioridad y fecha, sin cambiar las posiciones del lienzo.\n- **Informe analítico con ChatGPT** reúne las tarjetas activas y archivadas. Puedes copiar la consulta, abrir ChatGPT, pegar allí la consulta y traer la respuesta al tablero. **Vista del informe / PDF** permite imprimir o guardar las métricas junto con el análisis pegado.\n";
+const helpMarkdown="## Conectar y empezar\n- Pulsa **Conectar GitHub**, indica tu repositorio privado (por ejemplo, quimvp/tickets) y usa un token con permiso **Contents → Read and write**.\n- **Recordar conexión en este navegador** vuelve a conectar al abrir el tablero. Usa esta opción en un navegador de confianza. Para borrar el token guardado, abre **Gestionar conexión → Desconectar y olvidar token**.\n- Las tarjetas se guardan como archivos Markdown en la carpeta **tarjetas/** del repositorio. Si aparece **Importar tarjetas de este navegador**, puedes migrar tarjetas antiguas guardadas localmente.\n\n## Usar el lienzo\n- En el menú superior izquierdo, **Paleta de colores** muestra las muestras y los códigos HEX de las zonas, las tarjetas y la interfaz.\n- **Nueva tarjeta** abre una ficha. El botón **＋** de una zona crea la tarjeta directamente en esa zona.\n- Las tres zonas son **Tickets urgentes**, **Tickets y solicitudes** y **Desarrollos**. Arrastra las tarjetas dentro de una zona o entre zonas. Las tarjetas cambian de color según la zona.\n- **Urgentes** admite hasta tres tarjetas abiertas. Una tarjeta nueva que entre en esa zona emite un pitido después de guardarse.\n- Arrastra la muesca inferior de cada zona para ajustar su altura. Haz doble clic para restablecerla. También puedes enfocar el tirador y usar las flechas arriba y abajo.\n- El pie muestra el total de tarjetas abiertas, el tiempo medio de cierre, el agente con más asignaciones activas, los desarrollos activos, el repositorio, el estado de la conexión y la versión.\n\n## Editar, duplicar y archivar\n- Marca **Cerrar automáticamente en 24 horas** al guardar una tarjeta para iniciar el plazo. Tras 24 horas el tablero conectado a GitHub la archiva y añade a la descripción una nota breve que indica si hubo cambios. Si el tablero estaba cerrado o desconectado, aplica el cierre al volver a conectar. Al restaurarla, el plazo queda desactivado.\n- Pulsa una tarjeta del lienzo o su botón **⋯** para editarla. Puedes cambiar el título, la descripción, el tipo, la zona, las fechas, la prioridad, los agentes y las etiquetas. Separa varios agentes o etiquetas con comas.\n- Los tipos disponibles son **Ticket**, **Solicitud**, **Reunión** y **Desarrollo**.\n- **Duplicar** propone el título original. La copia conserva los datos de la ficha, empieza con la fecha de entrada de hoy y queda abierta.\n- Al registrar una **fecha de cierre** o pulsar **Archivar**, la tarjeta sale del tablero principal. Si está visible, aparece un efecto de desintegración.\n- **Ver archivadas**, al pie de la barra lateral, reúne las tarjetas archivadas en un solo lienzo. Abre el menú **⋯** de una tarjeta y pulsa **Restaurar** para reabrirla en **Tickets y solicitudes**. Se borra su fecha de cierre.\n- **Borrar** pide confirmación antes de quitar la tarjeta.\n\n## Buscar y filtrar\n- En la barra superior, **Buscar por palabras** abre un lienzo emergente con las tarjetas activas y archivadas que contienen al menos una de las palabras escritas. Busca en el título, la descripción, el tipo, los agentes, las etiquetas, la prioridad y la zona, sin distinguir mayúsculas ni tildes.\n- Usa **fecha:22/11/2026** para buscar por entrada o cierre, o **entrada:2026-11-22** y **cierre:2026-11-22** para comparar un campo concreto. **agente:\"Ana Ruiz\"**, **prioridad:alta** y **avisos:sí** filtran por agente, prioridad y casilla de aviso activada. Puedes usar **avisos:no** para buscar avisos desactivados. Si combinas filtros, la tarjeta debe cumplirlos todos y contener al menos una de las palabras libres, si las escribes.\n- **Buscar tarjetas** filtra por texto. En **Etiquetas**, pulsa una etiqueta para mostrar las tarjetas correspondientes y **Todas** para quitar ese filtro.\n- En **Agentes**, pulsa un nombre para ver sus tarjetas y **Todos los agentes** para quitar ese filtro. El número junto a cada nombre indica sus asignaciones activas.\n- La búsqueda y los filtros de etiquetas y agentes se pueden combinar. El archivo reúne todas las tarjetas archivadas sin esos filtros.\n\n## Avisos\n- En la ficha, marca **Avisar si sigue abierta después de dos días**. El tablero muestra un aviso cuando han pasado más de dos días desde la entrada y la tarjeta sigue abierta. **Avisos** permite consultar los pendientes.\n- Tras el aviso, **¿Mantener el aviso?** propone **No**. Al guardar con **No**, se desmarca la casilla. Si eliges **Sí** o vuelves a activar manualmente el aviso, la tarjeta espera 24 horas antes de volver a avisar.\n- Las tarjetas activas sin fecha de cierre también tienen un aviso independiente al cumplir un mes natural desde la entrada.\n\n## Compartir, exportar e imprimir\n- El icono **Compartir** de una tarjeta permite preparar un borrador de **Correo** con sus datos en el cuerpo o crear un enlace para copiar o enviar por **WhatsApp**.\n- El enlace muestra una copia de la tarjeta. Cualquiera que tenga el enlace puede ver esa copia, que conserva los datos del momento en que se creó.\n- En una tarjeta guardada, elige **Markdown**, **TXT** o **PDF** para exportarla. Para PDF, abre la vista de impresión y elige **Guardar como PDF**.\n- En el menú superior izquierdo, **Listar / imprimir tarjetas activas** abre el listado completo, ordenable por fecha o por prioridad y fecha, sin cambiar las posiciones del lienzo.\n- **Informe analítico con ChatGPT** reúne las tarjetas activas y archivadas. Puedes copiar la consulta, abrir ChatGPT, pegar allí la consulta y traer la respuesta al tablero. **Vista del informe / PDF** permite imprimir o guardar las métricas junto con el análisis pegado.\n";
 function renderHelpMarkdown(markdown,target){
  let list=null;
  function addInline(parent,text){
@@ -1034,7 +1072,7 @@ by('archiveCard').onclick=async ()=>{
  if(!card)return;
  const restored=isArchived(card);
  const updated=restored
-  ?{...card,...newCardPosition(1),lane:1,close:'',archived:false}
+  ?{...card,...newCardPosition(1),lane:1,close:'',archived:false,...oneDaySettings(null,false)}
   :{...card,archived:true};
  if(await change(()=>writeCard(updated)))editor.close();
 };
@@ -1218,10 +1256,10 @@ function showOverdue(){
  by('overdueDialog').showModal();
  for(const card of overdue)notified.add(card.id);
 }
-document.addEventListener('visibilitychange',showOverdue);
-setInterval(()=>{updateReminderButton();showOverdue()},60000);
+document.addEventListener('visibilitychange',()=>{void closeExpiredOneDayCards();showOverdue()});
+setInterval(()=>{void closeExpiredOneDayCards();updateReminderButton();showOverdue()},60000);
 document.querySelectorAll('dialog').forEach(dialog=>dialog.addEventListener('close',showOverdue));
-board.insertAdjacentHTML('beforeend',"<footer id=\"boardSummary\" aria-label=\"Resumen del tablero\"><span id=\"summaryTotal\"></span><span id=\"summaryAverage\"></span><span id=\"summaryAgent\"></span><span id=\"summaryDevelopment\"></span><span id=\"summaryRepository\"></span><span id=\"summaryConnection\"></span><span>Versión 1.10.2</span></footer>");
+board.insertAdjacentHTML('beforeend',"<footer id=\"boardSummary\" aria-label=\"Resumen del tablero\"><span id=\"summaryTotal\"></span><span id=\"summaryAverage\"></span><span id=\"summaryAgent\"></span><span id=\"summaryDevelopment\"></span><span id=\"summaryRepository\"></span><span id=\"summaryConnection\"></span><span>Versión 1.11.0</span></footer>");
 if(location.hash.startsWith('#tarjeta='))showSharedCard();
 else {
  render();
