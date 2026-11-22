@@ -68,6 +68,17 @@ header{flex-wrap:wrap}
 .layout{gap:10px;margin-top:0;grid-template-columns:minmax(0,1fr) minmax(190px,230px)}
 .card .share-card{display:grid;place-items:center;width:27px;height:25px;padding:0}
 @media(max-width:780px){.layout{grid-template-columns:minmax(0,1fr)}}
+body{min-height:100dvh;display:flex;flex-direction:column}
+body>header{flex:none}
+.wrap{flex:1;display:flex;flex-direction:column;min-width:0}
+.layout{flex:1}
+.board{grid-template-rows:minmax(min-content,1fr) minmax(min-content,1.65fr) minmax(min-content,1fr)}
+.board>.lane{display:flex;flex-direction:column}
+.board .scroller{display:flex;flex:1}
+.board .surface{flex:1;background-size:8px 8px;background-image:radial-gradient(var(--dot) .65px,transparent .65px)}
+#shareForm .end{flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:780px){.layout{grid-template-rows:minmax(min-content,1fr) auto}}
+@media print{body.printing{display:block;min-height:0}}
 </style>
 <header><div class="header-brand"><span class="logo" aria-hidden="true">▦</span><h1 class="board-title">Tablero de tarjetas</h1></div><div class="header-tools"><div class="toolbar"><button id="printBoard" type="button">Vista de impresión</button><button class="primary" id="new">＋ Nueva tarjeta</button></div><button id="connect">Conectar GitHub</button><time id="headerClock"></time></div></header>
 <main class="wrap">
@@ -86,7 +97,7 @@ header{flex-wrap:wrap}
 <dialog id="shareDialog" aria-labelledby="shareTitle">
 <form id="shareForm"><h2 id="shareTitle">Compartir tarjeta</h2><p>El enlace contiene una copia del título, la descripción, las fechas, la zona y la prioridad. Cualquiera con el enlace podrá leerla, incluso si se reenvía.</p>
 <div id="shareResult" hidden><label>Enlace de la tarjeta<input id="shareUrl" type="url" readonly></label><p id="shareNotice" role="status"></p></div>
-<div class="end"><button type="button" data-close="shareDialog">Cerrar</button><button type="button" id="shareWhatsApp" hidden>WhatsApp</button><button type="button" id="shareCopy" hidden>Copiar enlace</button><button class="primary" id="shareCreate">Crear enlace</button></div></form>
+<div class="end"><button type="button" data-close="shareDialog">Cerrar</button><button type="button" id="shareEmail">Correo</button><button type="button" id="shareWhatsApp" hidden>WhatsApp</button><button type="button" id="shareCopy" hidden>Copiar enlace</button><button class="primary" id="shareCreate">Crear enlace</button></div></form>
 </dialog>
 <dialog id="duplicateDialog" aria-labelledby="duplicateTitle">
 <form id="duplicateForm"><h2 id="duplicateTitle">Duplicar tarjeta</h2><label>Nombre del duplicado<input name="title" required maxlength="120"></label><div class="end"><button type="button" data-close="duplicateDialog">Cancelar</button><button class="primary">Crear duplicado</button></div></form>
@@ -350,7 +361,7 @@ function render(){
   const all=active.filter(c=>c.lane===lane), shown=visible.filter(c=>c.lane===lane);
   surface.closest('section').querySelector('.count').textContent=shown.length;
   surface.style.minWidth=Math.max(0,...all.map(c=>c.x+248))+'px';
-  surface.style.height=Math.max(156,...all.map(c=>c.y+146))+'px';
+  surface.style.minHeight=Math.max(156,...all.map(c=>c.y+146))+'px';
   surface.replaceChildren(...shown.map(drawCard));
  });
  by('tags').replaceChildren(...['',...tags].map(tag=>{
@@ -646,6 +657,21 @@ by('shareCopy').onclick=async ()=>{
   field.select();
   by('shareNotice').textContent='Copia el enlace seleccionado.';
  }
+};
+function makeCardEmail(card){
+ const lines=[card.title,'','Zona: '+lanes[card.lane]];
+ for(const [field,label] of Object.entries(shareLabels)){
+  if(!card[field])continue;
+  const value=field==='entry'||field==='close'?date(card[field]):card[field];
+  lines.push(label+': '+value);
+ }
+ if(card.notes)lines.push('','Descripción:',card.notes);
+ const subject=card.title.replace(/[\r\n]+/g,' ');
+ const body=lines.join('\n').replace(/\r\n|\r|\n/g,'\r\n');
+ return 'mailto:?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+}
+by('shareEmail').onclick=()=>{
+ if(cardToShare)location.href=makeCardEmail(cardToShare);
 };
 by('shareWhatsApp').onclick=()=>{
  const url='https://wa.me/?text='+encodeURIComponent(by('shareUrl').value);
