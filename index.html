@@ -121,8 +121,8 @@ body>header{flex:none}
 <form id="duplicateForm"><h2 id="duplicateTitle">Duplicar tarjeta</h2><label>Nombre del duplicado<input name="title" required maxlength="120"></label><div class="end"><button type="button" data-close="duplicateDialog">Cancelar</button><button class="primary">Crear duplicado</button></div></form>
 </dialog>
 <dialog id="reminderDialog" role="alertdialog" aria-labelledby="reminderTitle">
-<h2 id="reminderTitle">Avisos de tarjetas</h2><p id="reminderEmpty">No hay tarjetas abiertas con aviso activado y más de dos días de antigüedad.</p>
-<ul id="reminderList"></ul><div class="end"><button type="button" class="primary" data-close="reminderDialog">Entendido</button></div>
+<h2 id="reminderTitle">Avisos de tarjetas</h2><p id="reminderEmpty">No hay avisos pendientes.</p>
+<ul id="reminderList"></ul><div class="end"><button type="button" data-close="reminderDialog">Cerrar</button><button type="button" class="primary" id="saveReminders">Guardar decisión</button></div>
 </dialog>
 <dialog id="overdueDialog" role="alertdialog" aria-labelledby="overdueTitle" aria-describedby="overdueDescription">
 <h2 id="overdueTitle">Tarjetas abiertas desde hace un mes</h2><p id="overdueDescription">Estas tarjetas siguen sin fecha de cierre.</p><ul id="overdueList"></ul><div class="end"><button class="primary" type="button" data-close="overdueDialog">Entendido</button></div>
@@ -613,7 +613,7 @@ duplicateForm.onsubmit=async event=>{
  const field=duplicateForm.elements.namedItem('title');
  const title=field.value.trim();
  if(!title){field.value='';field.reportValidity();return}
- const duplicate={...source,...newCardPosition(source.lane),id:newCardId(),sha:undefined,archived:false,title,entry:today(),close:''};
+ const duplicate={...source,...newCardPosition(source.lane),id:newCardId(),sha:undefined,archived:false,title,entry:today(),close:'',reminderAt:0};
  if(await change(()=>writeCard(duplicate))){
   by('duplicateDialog').close();
   editor.close();
@@ -633,8 +633,8 @@ form.onsubmit=async e=>{
  if(!values.title){field('title').value='';field('title').reportValidity();return}
  if(values.close&&values.close<values.entry){field('close').setCustomValidity('El cierre debe ser igual o posterior a la entrada.');field('close').reportValidity();return}
  values.lane=Number(values.lane);
- values.reminder=field('reminder').checked;
  const previous=cards.find(c=>c.id===editing);
+ Object.assign(values,reminderSettings(previous,field('reminder').checked));
  const position=previous?.lane===values.lane?{x:previous.x,y:previous.y}:newCardPosition(values.lane);
  const card={...values,...position,archived:previous?.archived??false,sha:previous?.sha,id:previous?.id??newCardId()};
  if(await change(()=>writeCard(card)))editor.close();
@@ -942,31 +942,61 @@ function monthAfter(entry){
  target.setUTCDate(Math.min(day,lastDay));
  return target.toISOString().slice(0,10);
 }
-function needsReminder(card,current=today()){
- const age=(Date.parse(current)-Date.parse(card.entry))/86400000;
- return card.reminder===true&&!isArchived(card)&&age>2;
+const reminderDay=86400000;
+function reminderSettings(previous,enabled,now=Date.now()){
+ const lastSchedule=previous?.reminderAt??0;
+ const reactivated=enabled&&previous?.reminder===false&&lastSchedule>0;
+ const disabled=!enabled&&previous?.reminder===true;
+ return {reminder:enabled,reminderAt:reactivated?now+reminderDay:disabled?now:lastSchedule};
 }
+function needsReminder(card,current=today(),now=Date.now()){
+ const age=(Date.parse(current)-Date.parse(card.entry))/reminderDay;
+ return card.reminder===true&&!isArchived(card)&&age>2&&now>=(card.reminderAt??0);
+}
+const reminderNoticeKey=card=>'reminder:'+card.id+':'+(card.reminderAt??0);
 function updateReminderButton(){
  const pending=cards.filter(card=>needsReminder(card));
  const control=by('reminderButton');
  control.textContent=pending.length?'Avisos ('+pending.length+')':'Avisos';
  control.disabled=!github;
 }
+let reminderChoices=[];
 function openReminderDialog(records){
  const list=by('reminderList');
  list.replaceChildren();
  by('reminderEmpty').hidden=Boolean(records.length);
  list.hidden=!records.length;
- for(const card of records)append(list,'li',card.title+' · Entrada '+date(card.entry));
+ by('saveReminders').hidden=!records.length;
+ reminderChoices=records.map(card=>{
+  const row=append(list,'li','');
+  append(row,'strong',card.title);
+  append(row,'p','Entrada '+date(card.entry));
+  const label=append(row,'label','¿Mantener el aviso?');
+  const choice=append(label,'select','');
+  choice.add(new Option('No','no'));
+  choice.add(new Option('Sí, volver a avisar en 24 horas','yes'));
+  return {id:card.id,choice};
+ });
  by('reminderDialog').showModal();
 }
+by('saveReminders').onclick=async ()=>{
+ const now=Date.now();
+ if(await change(async ()=>{
+  for(const {id,choice} of reminderChoices){
+   const card=cards.find(item=>item.id===id);
+   if(!card||!needsReminder(card))continue;
+   const keep=choice.value==='yes';
+   await writeCard({...card,reminder:keep,reminderAt:keep?now+reminderDay:now});
+  }
+ }))by('reminderDialog').close();
+};
 by('reminderButton').onclick=()=>{
- if(!github)return;
+ if(!github||busy)return;
  const reminders=cards.filter(card=>needsReminder(card));
  openReminderDialog(reminders);
  const repo=github.repo.toLowerCase();
  if(!notifiedByRepo.has(repo))notifiedByRepo.set(repo,new Set());
- for(const card of reminders)notifiedByRepo.get(repo).add('reminder:'+card.id);
+ for(const card of reminders)notifiedByRepo.get(repo).add(reminderNoticeKey(card));
 };
 const notifiedByRepo=new Map();
 function showOverdue(){
@@ -979,10 +1009,10 @@ function showOverdue(){
   const due=monthAfter(card.entry);
   return !isArchived(card)&&!card.close&&due&&due<=current&&!notified.has(card.id);
  });
- const reminders=cards.filter(card=>needsReminder(card,current)&&!notified.has('reminder:'+card.id));
+ const reminders=cards.filter(card=>needsReminder(card,current)&&!notified.has(reminderNoticeKey(card)));
  if(reminders.length){
   openReminderDialog(reminders);
-  for(const card of reminders)notified.add('reminder:'+card.id);
+  for(const card of reminders)notified.add(reminderNoticeKey(card));
   return;
  }
  if(!overdue.length)return;
