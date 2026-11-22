@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Tablero de tarjetas</title>
+<!-- Estilos de la interfaz, los lienzos y las vistas de impresión. -->
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f3f5f9;color:#17243b;font:16px system-ui,sans-serif}header{background:#14223a;color:white;padding:16px clamp(18px,4vw,56px);display:flex;align-items:center;gap:12px;font-weight:700}.logo{background:#735bfa;border-radius:10px;padding:7px 10px}.wrap{padding:30px clamp(16px,4vw,56px)}.lane-head,.actions{display:flex;align-items:center;justify-content:space-between;gap:12px}.board-title{font-size:22px;line-height:30px;letter-spacing:-.035em;margin:0;white-space:nowrap}p{margin:8px 0;color:#52617b}.layout{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:18px;margin-top:22px}.board{min-width:0;display:grid;gap:14px}.lane,dialog{background:white;border:1px solid #dbe2ef;border-radius:16px}.lane{overflow:hidden}.lane-head{padding:10px 14px;border-bottom:1px solid #e5eaf3}.lane-head h2,aside h2{margin:0;font-size:16px}.count{color:#52617b;font-weight:500;margin-left:8px}.scroller{overflow:auto} .surface{position:relative;background:radial-gradient(#d8dfec 1px,transparent 1px) 0 0/18px 18px #f8f9fc}.surface.over{background-color:#eeebff}.card{position:absolute;width:218px;height:132px;background:var(--color);border:1px solid #cdd6e6;border-left:5px solid var(--accent);border-radius:10px;padding:9px 10px;box-shadow:0 3px 7px #16243a15;cursor:grab;touch-action:none;user-select:none;overflow:hidden}.card[data-lane="0"]{--color:#ffedef;--accent:#cc304d}.card[data-lane="1"]{--color:#fff1df;--accent:#ba590d}.card[data-lane="2"]{--color:#e6f7ec;--accent:#23834e}.card.moving{z-index:10;cursor:grabbing;pointer-events:none}.card-top{display:flex;align-items:center;justify-content:space-between;gap:5px}.card strong,.meta{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.card strong{margin:5px 0}.meta{font-size:13px;color:#465572;line-height:1.35}.badge{font-size:13px;font-weight:650}.card button{padding:1px 6px}.chip{font-size:14px;padding:5px 9px}button,input,select,textarea{font:inherit}button{cursor:pointer;border:1px solid #ccd5e5;background:white;color:#17243b;border-radius:8px;padding:7px 10px}button:hover{background:#edf0ff}button.primary{background:#5844db;color:white;border-color:#5844db;font-weight:650}button.active{color:#432db9;background:#ede9ff;border-color:#b9adff}aside input{width:100%;margin:12px 0}#tags,#tagCards{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}#tagCards button{text-align:left;width:100%;overflow-wrap:anywhere}.muted{font-size:14px;color:#52617b}dialog{width:min(560px,calc(100% - 24px));padding:22px;max-height:94vh}dialog::backdrop{background:#14223a88}dialog h2{margin:0 0 14px}form{display:grid;gap:10px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:grid;gap:4px;font-size:14px;font-weight:600;min-width:0}input,select,textarea{min-width:0;padding:7px;border:1px solid #bfcadf;border-radius:7px;background:#fff;color:inherit}textarea{resize:vertical}.danger{color:#a21b35}.check{display:flex;align-items:center}.actions{flex-wrap:wrap}.end{display:flex;gap:7px;margin-left:auto}[hidden]{display:none!important}@media(max-width:780px){.layout{grid-template-columns:1fr}.wrap{padding-top:20px}}
 
@@ -135,10 +136,19 @@ header{display:grid;grid-template-columns:minmax(max-content,1fr) minmax(190px,3
 .card[data-review="true"] .badge{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #importDialog{width:min(690px,calc(100% - 24px))}
 #importExample{margin:0;padding:12px;background:#f3f5f9;border:1px solid #dbe2ef;border-radius:8px;max-height:200px;overflow:auto}
+#sourceDialog{width:min(960px,calc(100% - 24px))}
+#sourceDialog .preview-controls{justify-content:space-between;align-items:center}
+#sourceDialog h2{margin:0}
+#sourceMarkdown{font-family:ui-monospace,monospace;white-space:pre;overflow:auto}
+#sourceDialog .toolbar{margin-top:10px}
+#importExample,#helpContent pre{white-space:pre;overflow:auto;background:#f3f5f9;border:1px solid #dbe2ef;border-radius:8px;padding:12px}
 </style>
-<header><div class="header-brand"><details class="app-menu" id="appMenu"><summary class="logo" aria-label="Menú del tablero" title="Menú del tablero">▦</summary><div class="menu-options"><button id="printBoard" type="button">Listar / imprimir tarjetas activas</button><button id="openReport" type="button">Informe analítico con ChatGPT</button><button id="openHelp" type="button">Guía de uso</button><button id="openPalette" type="button">Paleta de colores</button><button id="openImport" type="button">Importar JSON</button></div></details><h1 class="board-title">Tablero de tarjetas</h1></div><form id="wordSearchForm" class="header-search" role="search"><input id="wordQuery" type="search" required placeholder="Palabras o filtros" aria-label="Buscar tarjetas por palabras o filtros" aria-describedby="wordSearchExample"><button id="wordSearchSubmit" type="submit">Buscar</button><span id="wordSearchExample">Ejemplos: fecha:22/11/2026 · agente:Ana · prioridad:alta · avisos:sí</span></form><div class="header-tools"><div class="toolbar"><button class="primary" id="new">＋ Nueva tarjeta</button></div><button type="button" id="reminderButton">Avisos</button><button id="connect">Conectar GitHub</button><time id="headerClock"></time></div></header>
+<!-- Menú, buscador y controles globales. -->
+<header><div class="header-brand"><details class="app-menu" id="appMenu"><summary class="logo" aria-label="Menú del tablero" title="Menú del tablero">▦</summary><div class="menu-options"><button id="printBoard" type="button">Listar / imprimir tarjetas activas</button><button id="openReport" type="button">Informe analítico con ChatGPT</button><button id="openHelp" type="button">Guía de uso</button><button id="openPalette" type="button">Paleta de colores</button><button id="openImport" type="button">Importar JSON</button><button id="openSource" type="button">Código fuente</button></div></details><h1 class="board-title">Tablero de tarjetas</h1></div><form id="wordSearchForm" class="header-search" role="search"><input id="wordQuery" type="search" required placeholder="Palabras o filtros" aria-label="Buscar tarjetas por palabras o filtros" aria-describedby="wordSearchExample"><button id="wordSearchSubmit" type="submit">Buscar</button><span id="wordSearchExample">Ejemplos: fecha:22/11/2026 · agente:Ana · prioridad:alta · avisos:sí</span></form><div class="header-tools"><div class="toolbar"><button class="primary" id="new">＋ Nueva tarjeta</button></div><button type="button" id="reminderButton">Avisos</button><button id="connect">Conectar GitHub</button><time id="headerClock"></time></div></header>
+<!-- Lienzo activo, archivo y barra lateral. -->
 <main class="wrap">
 <p id="status" role="status">Conecta un repositorio privado de GitHub para cargar tus tarjetas.</p><button id="migrate" hidden>Importar tarjetas de este navegador</button><div class="layout"><div class="board" id="board"></div><section id="archiveBoard" class="lane archive-board" aria-labelledby="archiveTitle" hidden><div class="lane-head"><h2 id="archiveTitle">Archivadas <span class="count" id="archiveCount"></span></h2></div><div class="archive-canvas" id="archiveCanvas"></div></section><aside class="sidebar"><section class="sidebar-panel" aria-labelledby="tagsTitle"><h2 id="tagsTitle">Etiquetas</h2><input id="search" type="search" placeholder="Buscar tarjetas" aria-label="Buscar tarjetas"><div id="tags"></div><div id="tagCards"></div></section><section class="sidebar-panel" aria-labelledby="agentsTitle"><h2 id="agentsTitle">Agentes</h2><p id="agentEmpty" class="muted"></p><ul id="agentList" class="agent-list"></ul></section><button id="archiveToggle" type="button" aria-pressed="false">Ver archivadas</button></aside></div></main>
+<!-- Ventanas emergentes del tablero. -->
 <dialog id="connection"><form id="connectionForm">
 <h2>Conectar GitHub</h2><label>Repositorio privado (cuenta/repositorio)<input name="repo" required pattern="[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+" placeholder="mi-cuenta/mesa-tarjetas"></label>
 <label>Token de acceso con permiso de escritura en Contents<input name="token" type="password" required autocomplete="off"></label>
@@ -196,6 +206,11 @@ header{display:grid;grid-template-columns:minmax(max-content,1fr) minmax(190px,3
 <h3>Zonas del lienzo</h3><div id="paletteZones" class="palette-groups"></div>
 <h3>Interfaz</h3><div id="paletteInterface" class="palette-groups"></div>
 </dialog>
+<dialog id="sourceDialog" aria-labelledby="sourceTitle">
+<div class="preview-controls"><h2 id="sourceTitle">Código fuente</h2><button type="button" data-close="sourceDialog">Cerrar</button></div>
+<label>Markdown del código publicado<textarea id="sourceMarkdown" rows="20" readonly spellcheck="false"></textarea></label>
+<div class="toolbar"><button id="copySource" type="button" disabled>Copiar Markdown</button><span id="sourceFeedback" role="status"></span></div>
+</dialog>
 <dialog id="helpDialog" aria-labelledby="helpTitle">
 <h2 id="helpTitle">Guía de uso</h2>
 <div id="helpContent"></div>
@@ -246,6 +261,7 @@ const encode=value=>{
 };
 const decode=value=>new TextDecoder().decode(Uint8Array.from(atob(value),char=>char.charCodeAt(0)));
 const filePath=id=>'/contents/tarjetas/'+encodeURIComponent(id)+'.md';
+// Acceso al repositorio privado y peticiones a la API de GitHub.
 async function request(connection,path,method='GET',body){
  const response=await fetch('https://api.github.com/repos/'+connection.repo+path,{
   method,cache:'no-store',
@@ -255,6 +271,7 @@ async function request(connection,path,method='GET',body){
  if(!response.ok)throw Object.assign(new Error('GitHub respondió con el código '+response.status+'.'),{status:response.status});
  return response.json();
 }
+// Lectura de archivos Markdown y recuperación de los datos del tablero.
 async function loadCards(connection){
  let entries;
  try{entries=await request(connection,'/contents/tarjetas')}
@@ -269,6 +286,7 @@ async function loadCards(connection){
  }));
 }
 const urgentLimit=3;
+// Reglas de prioridad y cupo de la zona de Urgentes.
 const priorityForLane=(lane,priority)=>Number(lane)===0?'Alta':priority;
 const isArchived=card=>Boolean(card?.archived||card?.close);
 const isActiveUrgent=card=>card?.lane===0&&!isArchived(card);
@@ -324,6 +342,7 @@ async function dissolveCard(id){
  }
  await animation.finished.catch(()=>{});
 }
+// Vencimiento y archivo de las tarjetas con plazo de 24 horas.
 const oneDayMs=86400000;
 const hasOneDayTimer=card=>Number.isFinite(card?.oneDayDue)&&card.oneDayDue>0;
 function oneDaySettings(previous,enabled,now=Date.now()){
@@ -349,6 +368,7 @@ async function closeExpiredOneDayCards(){
   for(const card of cards.filter(item=>oneDayExpired(item,now)))await writeCard(closeOneDayCard(card),{automatic:true});
  },{background:true});
 }
+// Guardado en GitHub y efectos posteriores a la confirmación.
 async function writeCard(card,{automatic=false}={}){
  const previous=cards.find(item=>item.id===card.id);
  if(isActiveUrgent(card)&&!cards.some(item=>item.id===card.id&&isActiveUrgent(item))){
@@ -402,6 +422,7 @@ function storeConnection(connection){
   return true;
  }catch{return false}
 }
+// Conexión al repositorio y recuperación opcional de la sesión.
 async function connectGithub(connection,remember,{restore=false}={}){
  if(busy)return false;
  busy=true;
@@ -475,6 +496,7 @@ by('migrate').onclick=async ()=>{
 };
 function button(label,action){const b=document.createElement('button');b.textContent=label;b.type='button';b.onclick=action;return b}
 function append(el,tag,value,cls){const child=document.createElement(tag);child.textContent=value;if(cls)child.className=cls;el.append(child);return child}
+// Tiradores de altura y preferencias del lienzo.
 const laneHeightKey='mesa-trabajo-lane-heights-v1';
 const minLaneHeight=88;
 let laneHeights={};
@@ -581,6 +603,7 @@ function renderAgents(records){
   }
  }
 }
+// Renderizado del lienzo, la barra lateral y el resumen.
 function render(){
  setTimeout(showOverdue,0);
  const active=cards.filter(card=>!isArchived(card));
@@ -635,6 +658,7 @@ function renderBoardSummary(active){
  by('summaryAgent').textContent='Más asignadas: '+(leaders?leaders+' ('+max+')':'—');
  by('summaryDevelopment').textContent='Desarrollo: '+active.filter(card=>card.lane===2).length;
 }
+// Vista de tarjetas archivadas.
 function renderArchive(){
  const archived=cards.filter(isArchived);
  board.hidden=showingArchive;
@@ -675,6 +699,7 @@ function drawCard(c,{allowDrag=true}={}){
  if(allowDrag&&!isArchived(c))el.addEventListener('pointerdown',event=>startDrag(event,el,c));
  return el;
 }
+// Arrastre y guardado de la posición de una tarjeta.
 function startDrag(event,el,c){
  if(busy||event.button!==0||event.target.closest('button'))return;
  const rect=el.getBoundingClientRect(),dx=event.clientX-rect.left,dy=event.clientY-rect.top;
@@ -738,6 +763,7 @@ function syncCardPriority(){
  priority.disabled=Number(field('lane').value)===0;
 }
 field('lane').onchange=syncCardPriority;
+// Editor, validación y actualización de tarjetas.
 function openCard(card,lane=1){
  if(!github||busy)return;
  editing=card?.id??null;form.reset();field('close').setCustomValidity('');field('entry').setCustomValidity('');
@@ -816,6 +842,7 @@ function printOrder(records,order){
  );
 }
 let previewCard=null;
+// Búsqueda por palabras y filtros en el lienzo emergente.
 const searchWords=value=>String(value??'').toLocaleLowerCase('es').normalize('NFD').replace(/\p{M}/gu,'').match(/[\p{L}\p{N}]+/gu)??[];
 function searchDate(value){
  const iso=/^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -886,6 +913,7 @@ by('wordSearchForm').onsubmit=event=>{
  by('wordSearchDialog').showModal();
 };
 by('wordQuery').oninput=event=>event.currentTarget.setCustomValidity('');
+// Validación e importación de lotes JSON.
 const importTypes=['Ticket','Solicitud','Reunión','Desarrollo'];
 const importPriorities=['Alta','Media','Baja'];
 function readImportCards(raw,entry=today()){
@@ -965,6 +993,7 @@ function addPaletteSwatches(parent,colors){
   append(row,'code',color.toUpperCase());
  }
 }
+// Muestras y códigos de la paleta de colores.
 function renderPalette(){
  const zones=by('paletteZones');
  zones.replaceChildren();
@@ -993,7 +1022,7 @@ function renderPalette(){
  ui.replaceChildren();
  const groups=[
   [['Barra superior','#14223a'],['Icono del menú','#735bfa'],['Acción principal','#5844db'],['Selección activa','#ede9ff'],['Texto auxiliar de la barra superior','#e1e9f8']],
-  [['Fondo de página','#f3f5f9'],['Paneles y diálogos','#ffffff'],['Cabecera del archivo','#e8edf5'],['Fondo del archivo','#f8f9fc']],
+  [['Fondo de página y ejemplos de código','#f3f5f9'],['Paneles y diálogos','#ffffff'],['Cabecera del archivo','#e8edf5'],['Fondo del archivo','#f8f9fc']],
   [['Texto principal','#17243b'],['Texto secundario','#52617b'],['Bordes de panel','#dbe2ef'],['Acción destructiva','#a21b35']]
  ];
  const root=getComputedStyle(document.documentElement);
@@ -1005,9 +1034,43 @@ by('openPalette').onclick=()=>{
  renderPalette();
  by('paletteDialog').showModal();
 };
-const helpMarkdown="## Conectar y empezar\n- Pulsa **Conectar GitHub**, indica tu repositorio privado (por ejemplo, quimvp/tickets) y usa un token con permiso **Contents → Read and write**.\n- **Recordar conexión en este navegador** vuelve a conectar al abrir el tablero. Usa esta opción en un navegador de confianza. Para borrar el token guardado, abre **Gestionar conexión → Desconectar y olvidar token**.\n- Las tarjetas se guardan como archivos Markdown en la carpeta **tarjetas/** del repositorio. Si aparece **Importar tarjetas de este navegador**, puedes migrar tarjetas antiguas guardadas localmente.\n\n## Usar el lienzo\n- En el menú superior izquierdo, **Paleta de colores** muestra las muestras y los códigos HEX de las zonas, las tarjetas y la interfaz.\n- **Nueva tarjeta** abre una ficha. El botón **＋** de una zona crea la tarjeta directamente en esa zona.\n- Las tres zonas son **Tickets urgentes**, **Tickets y solicitudes** y **Desarrollos**. Arrastra las tarjetas dentro de una zona o entre zonas. Las tarjetas cambian de color según la zona.\n- **Urgentes** admite hasta tres tarjetas abiertas. Todas las tarjetas de esta zona tienen prioridad **Alta** automáticamente. Una tarjeta nueva que entre en esa zona emite un pitido después de guardarse.\n- Arrastra la muesca inferior de cada zona para ajustar su altura. Haz doble clic para restablecerla. También puedes enfocar el tirador y usar las flechas arriba y abajo.\n- El pie muestra el total de tarjetas abiertas, el tiempo medio de cierre, el agente con más asignaciones activas, los desarrollos activos, el repositorio, el estado de la conexión y la versión.\n\n## Editar, duplicar y archivar\n- En el menú, **Importar JSON** abre un cuadro con un ejemplo de dos tarjetas. Pega una lista JSON y pulsa **Importar**. Solo se exige el título. Las tarjetas aparecen en azul en **Tickets y solicitudes**. Para quitar el azul, abre la ficha, marca **Marcar como revisada** y guarda.\n- Marca **Cerrar automáticamente en 24 horas** al guardar una tarjeta para iniciar el plazo. Tras 24 horas el tablero conectado a GitHub la archiva y añade a la descripción una nota breve que indica si hubo cambios. Si el tablero estaba cerrado o desconectado, aplica el cierre al volver a conectar. Al restaurarla, el plazo queda desactivado.\n- Pulsa una tarjeta del lienzo o su botón **⋯** para editarla. Puedes cambiar el título, la descripción, el tipo, la zona, las fechas, la prioridad, los agentes y las etiquetas. Separa varios agentes o etiquetas con comas.\n- Los tipos disponibles son **Ticket**, **Solicitud**, **Reunión** y **Desarrollo**.\n- **Duplicar** propone el título original. La copia conserva los datos de la ficha, empieza con la fecha de entrada de hoy y queda abierta.\n- Al registrar una **fecha de cierre** o pulsar **Archivar**, la tarjeta sale del tablero principal. Si está visible, aparece un efecto de desintegración.\n- **Ver archivadas**, al pie de la barra lateral, reúne las tarjetas archivadas en un solo lienzo. Abre el menú **⋯** de una tarjeta y pulsa **Restaurar** para reabrirla en **Tickets y solicitudes**. Se borra su fecha de cierre.\n- **Borrar** pide confirmación antes de quitar la tarjeta.\n\n## Buscar y filtrar\n- En la barra superior, **Buscar por palabras** abre un lienzo emergente con las tarjetas activas y archivadas que contienen al menos una de las palabras escritas. Busca en el título, la descripción, el tipo, los agentes, las etiquetas, la prioridad y la zona, sin distinguir mayúsculas ni tildes.\n- Usa **fecha:22/11/2026** para buscar por entrada o cierre, o **entrada:2026-11-22** y **cierre:2026-11-22** para comparar un campo concreto. **agente:\"Ana Ruiz\"**, **prioridad:alta** y **avisos:sí** filtran por agente, prioridad y casilla de aviso activada. Puedes usar **avisos:no** para buscar avisos desactivados. Si combinas filtros, la tarjeta debe cumplirlos todos y contener al menos una de las palabras libres, si las escribes.\n- **Buscar tarjetas** filtra por texto. En **Etiquetas**, pulsa una etiqueta para mostrar las tarjetas correspondientes y **Todas** para quitar ese filtro.\n- En **Agentes**, pulsa un nombre para ver sus tarjetas y **Todos los agentes** para quitar ese filtro. El número junto a cada nombre indica sus asignaciones activas.\n- La búsqueda y los filtros de etiquetas y agentes se pueden combinar. El archivo reúne todas las tarjetas archivadas sin esos filtros.\n\n## Avisos\n- En la ficha, marca **Avisar si sigue abierta después de dos días**. El tablero muestra un aviso cuando han pasado más de dos días desde la entrada y la tarjeta sigue abierta. **Avisos** permite consultar los pendientes.\n- Tras el aviso, **¿Mantener el aviso?** propone **No**. Al guardar con **No**, se desmarca la casilla. Si eliges **Sí** o vuelves a activar manualmente el aviso, la tarjeta espera 24 horas antes de volver a avisar.\n- Las tarjetas activas sin fecha de cierre también tienen un aviso independiente al cumplir un mes natural desde la entrada.\n\n## Compartir, exportar e imprimir\n- El icono **Compartir** de una tarjeta permite preparar un borrador de **Correo** con sus datos en el cuerpo o crear un enlace para copiar o enviar por **WhatsApp**.\n- El enlace muestra una copia de la tarjeta. Cualquiera que tenga el enlace puede ver esa copia, que conserva los datos del momento en que se creó.\n- En una tarjeta guardada, elige **Markdown**, **TXT** o **PDF** para exportarla. Para PDF, abre la vista de impresión y elige **Guardar como PDF**.\n- En el menú superior izquierdo, **Listar / imprimir tarjetas activas** abre el listado completo, ordenable por fecha o por prioridad y fecha, sin cambiar las posiciones del lienzo.\n- **Informe analítico con ChatGPT** reúne las tarjetas activas y archivadas. Puedes copiar la consulta, abrir ChatGPT, pegar allí la consulta y traer la respuesta al tablero. **Vista del informe / PDF** permite imprimir o guardar las métricas junto con el análisis pegado.\n";
+// Vista Markdown del código publicado.
+function sourceAsMarkdown(source){
+ const longest=(source.match(/\x60+/g)||[]).reduce((length,run)=>Math.max(length,run.length),0);
+ const fence=String.fromCharCode(96).repeat(Math.max(3,longest+1));
+ return ['# Código fuente del Tablero de tarjetas','',fence+'html',source.trimEnd(),fence,''].join('\n');
+}
+by('openSource').onclick=async ()=>{
+ by('appMenu').open=false;
+ const field=by('sourceMarkdown');
+ const feedback=by('sourceFeedback');
+ by('copySource').disabled=true;
+ field.value='';
+ feedback.textContent='Cargando el código publicado…';
+ by('sourceDialog').showModal();
+ try{
+  const response=await fetch(new URL('index.html',location.href),{cache:'no-cache'});
+  if(!response.ok)throw Error('HTTP '+response.status);
+  field.value=sourceAsMarkdown(await response.text());
+  by('copySource').disabled=false;
+  feedback.textContent='';
+ }catch{
+  feedback.textContent='No se pudo cargar el código. Cierra la ventana y vuelve a intentarlo.';
+ }
+};
+by('copySource').onclick=async ()=>{
+ const field=by('sourceMarkdown');
+ try{
+  await navigator.clipboard.writeText(field.value);
+  by('sourceFeedback').textContent='Markdown copiado.';
+ }catch{
+  field.select();
+  by('sourceFeedback').textContent='Copia el texto seleccionado.';
+ }
+};
+const helpMarkdown="## Conectar y empezar\n- Pulsa **Conectar GitHub**, indica tu repositorio privado (por ejemplo, quimvp/tickets) y usa un token con permiso **Contents → Read and write**.\n- **Recordar conexión en este navegador** vuelve a conectar al abrir el tablero. Usa esta opción en un navegador de confianza. Para borrar el token guardado, abre **Gestionar conexión → Desconectar y olvidar token**.\n- Las tarjetas se guardan como archivos Markdown en la carpeta **tarjetas/** del repositorio. Si aparece **Importar tarjetas de este navegador**, puedes migrar tarjetas antiguas guardadas localmente.\n\n## Usar el lienzo\n- En el menú superior izquierdo, **Paleta de colores** muestra las muestras y los códigos HEX de las zonas, las tarjetas y la interfaz.\n- **Nueva tarjeta** abre una ficha. El botón **＋** de una zona crea la tarjeta directamente en esa zona.\n- Las tres zonas son **Tickets urgentes**, **Tickets y solicitudes** y **Desarrollos**. Arrastra las tarjetas dentro de una zona o entre zonas. Las tarjetas cambian de color según la zona.\n- **Urgentes** admite hasta tres tarjetas abiertas. Todas las tarjetas de esta zona tienen prioridad **Alta** automáticamente. Una tarjeta nueva que entre en esa zona emite un pitido después de guardarse.\n- Arrastra la muesca inferior de cada zona para ajustar su altura. Haz doble clic para restablecerla. También puedes enfocar el tirador y usar las flechas arriba y abajo.\n- El pie muestra el total de tarjetas abiertas, el tiempo medio de cierre, el agente con más asignaciones activas, los desarrollos activos, el repositorio, el estado de la conexión y la versión.\n\n## Importar tickets desde JSON\n- Conecta GitHub. Abre el menú superior izquierdo, elige **Importar JSON**, pega la lista en el campo y pulsa **Importar**.\n- El JSON debe ser una lista entre **[ ]**, con un objeto **{ }** por tarjeta. El único campo obligatorio es **titulo**, con un máximo de 120 caracteres.\n- Campos opcionales: **descripcion**, **tipo**, **prioridad**, **agentes**, **etiquetas** y **fechaEntrada**.\n- **tipo** admite **Ticket**, **Solicitud**, **Reunión** o **Desarrollo**. Si lo omites, se usa **Ticket**. **prioridad** admite **Alta**, **Media** o **Baja**. Puedes omitirla.\n- Escribe **agentes** y **etiquetas** como listas de textos o como texto separado por comas. **fechaEntrada** admite AAAA-MM-DD o DD/MM/AAAA. Si la omites, se usa la fecha de hoy.\n- El tablero comprueba toda la lista antes de empezar. Si hay un error, corrige la tarjeta indicada. Si GitHub interrumpe la importación, deja el texto intacto y pulsa **Importar** otra vez para continuar.\n\nEjemplo con dos tickets\n\n```json\n[\n  {\"titulo\": \"Revisar pedido\", \"prioridad\": \"Media\", \"agentes\": [\"Ana Ruiz\"]},\n  {\"titulo\": \"Confirmar envío\", \"etiquetas\": [\"Logística\"]}\n]\n```\n\n- Las tarjetas importadas aparecen en azul en **Tickets y solicitudes**, pendientes de revisión. Abre una tarjeta, marca **Marcar como revisada** y guarda para que adopte el color normal de su zona.\n\n## Editar, duplicar y archivar\n- Marca **Cerrar automáticamente en 24 horas** al guardar una tarjeta para iniciar el plazo. Tras 24 horas el tablero conectado a GitHub la archiva y añade a la descripción una nota breve que indica si hubo cambios. Si el tablero estaba cerrado o desconectado, aplica el cierre al volver a conectar. Al restaurarla, el plazo queda desactivado.\n- Pulsa una tarjeta del lienzo o su botón **⋯** para editarla. Puedes cambiar el título, la descripción, el tipo, la zona, las fechas, la prioridad, los agentes y las etiquetas. Separa varios agentes o etiquetas con comas.\n- Los tipos disponibles son **Ticket**, **Solicitud**, **Reunión** y **Desarrollo**.\n- **Duplicar** propone el título original. La copia conserva los datos de la ficha, empieza con la fecha de entrada de hoy y queda abierta.\n- Al registrar una **fecha de cierre** o pulsar **Archivar**, la tarjeta sale del tablero principal. Si está visible, aparece un efecto de desintegración.\n- **Ver archivadas**, al pie de la barra lateral, reúne las tarjetas archivadas en un solo lienzo. Abre el menú **⋯** de una tarjeta y pulsa **Restaurar** para reabrirla en **Tickets y solicitudes**. Se borra su fecha de cierre.\n- **Borrar** pide confirmación antes de quitar la tarjeta.\n\n## Buscar y filtrar\n- En la barra superior, **Buscar por palabras** abre un lienzo emergente con las tarjetas activas y archivadas que contienen al menos una de las palabras escritas. Busca en el título, la descripción, el tipo, los agentes, las etiquetas, la prioridad y la zona, sin distinguir mayúsculas ni tildes.\n- Usa **fecha:22/11/2026** para buscar por entrada o cierre, o **entrada:2026-11-22** y **cierre:2026-11-22** para comparar un campo concreto. **agente:\"Ana Ruiz\"**, **prioridad:alta** y **avisos:sí** filtran por agente, prioridad y casilla de aviso activada. Puedes usar **avisos:no** para buscar avisos desactivados. Si combinas filtros, la tarjeta debe cumplirlos todos y contener al menos una de las palabras libres, si las escribes.\n- **Buscar tarjetas** filtra por texto. En **Etiquetas**, pulsa una etiqueta para mostrar las tarjetas correspondientes y **Todas** para quitar ese filtro.\n- En **Agentes**, pulsa un nombre para ver sus tarjetas y **Todos los agentes** para quitar ese filtro. El número junto a cada nombre indica sus asignaciones activas.\n- La búsqueda y los filtros de etiquetas y agentes se pueden combinar. El archivo reúne todas las tarjetas archivadas sin esos filtros.\n\n## Avisos\n- En la ficha, marca **Avisar si sigue abierta después de dos días**. El tablero muestra un aviso cuando han pasado más de dos días desde la entrada y la tarjeta sigue abierta. **Avisos** permite consultar los pendientes.\n- Tras el aviso, **¿Mantener el aviso?** propone **No**. Al guardar con **No**, se desmarca la casilla. Si eliges **Sí** o vuelves a activar manualmente el aviso, la tarjeta espera 24 horas antes de volver a avisar.\n- Las tarjetas activas sin fecha de cierre también tienen un aviso independiente al cumplir un mes natural desde la entrada.\n\n## Compartir, exportar e imprimir\n- El icono **Compartir** de una tarjeta permite preparar un borrador de **Correo** con sus datos en el cuerpo o crear un enlace para copiar o enviar por **WhatsApp**.\n- El enlace muestra una copia de la tarjeta. Cualquiera que tenga el enlace puede ver esa copia, que conserva los datos del momento en que se creó.\n- En una tarjeta guardada, elige **Markdown**, **TXT** o **PDF** para exportarla. Para PDF, abre la vista de impresión y elige **Guardar como PDF**.\n- En el menú superior izquierdo, **Listar / imprimir tarjetas activas** abre el listado completo, ordenable por fecha o por prioridad y fecha, sin cambiar las posiciones del lienzo.\n- **Informe analítico con ChatGPT** reúne las tarjetas activas y archivadas. Puedes copiar la consulta, abrir ChatGPT, pegar allí la consulta y traer la respuesta al tablero. **Vista del informe / PDF** permite imprimir o guardar las métricas junto con el análisis pegado.\n\n## Código fuente\n- La última opción del menú, **Código fuente**, muestra en Markdown el HTML, CSS y JavaScript de la versión publicada, con comentarios en los bloques principales. Pulsa **Copiar Markdown** para copiarlo.\n";
 function renderHelpMarkdown(markdown,target){
- let list=null;
+ let list=null,code=null;
  function addInline(parent,text){
   text.split(/\*\*([^*]+)\*\*/).forEach((part,index)=>{
    if(index%2)append(parent,'strong',part);
@@ -1015,6 +1078,12 @@ function renderHelpMarkdown(markdown,target){
   });
  }
  for(const line of markdown.trim().split('\n')){
+  if(line.startsWith(String.fromCharCode(96).repeat(3))){
+   if(code){append(append(target,'pre',''),'code',code.join('\n'));code=null}
+   else{list=null;code=[]}
+   continue;
+  }
+  if(code){code.push(line);continue}
   if(line.startsWith('- ')){
    list??=append(target,'ul','');
    addInline(append(list,'li',''),line.slice(2));
@@ -1031,6 +1100,7 @@ by('openHelp').onclick=()=>{
  if(!content.childNodes.length)renderHelpMarkdown(helpMarkdown,content);
  by('helpDialog').showModal();
 };
+// Informe de tarjetas y consulta para ChatGPT.
 function reportData(records){
  return records.map(card=>({
   estado:isArchived(card)?'Archivada':'Activa',zona:lanes[card.lane],tipo:card.type,
@@ -1114,6 +1184,7 @@ by('previewReport').onclick=()=>{
  by('preview').showModal();
 };
 let printArchive=false;
+// Vista previa y preparación para imprimir o guardar como PDF.
 function renderPreview(){
  if(reportPreview){
   by('sortControl').hidden=true;
@@ -1196,6 +1267,7 @@ by('deleteForm').onsubmit=async e=>{
   cards=cards.filter(c=>c.id!==card.id);
  })){deletion.close();editor.close()}
 };
+// Enlace público de una tarjeta y opciones de compartir.
 const shareFields=['title','notes','type','entry','close','priority'];
 const shareLabels={type:'Tipo',entry:'Entrada',close:'Cierre',priority:'Prioridad'};
 function makeShareLink(card,base=location.href){
@@ -1287,6 +1359,7 @@ function monthAfter(entry){
  target.setUTCDate(Math.min(day,lastDay));
  return target.toISOString().slice(0,10);
 }
+// Avisos por antigüedad y espera de 24 horas.
 const reminderDay=86400000;
 function reminderSettings(previous,enabled,now=Date.now()){
  const lastSchedule=previous?.reminderAt??0;
@@ -1370,7 +1443,7 @@ function showOverdue(){
 document.addEventListener('visibilitychange',()=>{void closeExpiredOneDayCards();showOverdue()});
 setInterval(()=>{void closeExpiredOneDayCards();updateReminderButton();showOverdue()},60000);
 document.querySelectorAll('dialog').forEach(dialog=>dialog.addEventListener('close',showOverdue));
-board.insertAdjacentHTML('beforeend',"<footer id=\"boardSummary\" aria-label=\"Resumen del tablero\"><span id=\"summaryTotal\"></span><span id=\"summaryAverage\"></span><span id=\"summaryAgent\"></span><span id=\"summaryDevelopment\"></span><span id=\"summaryRepository\"></span><span id=\"summaryConnection\"></span><span>Versión 1.12.0</span></footer>");
+board.insertAdjacentHTML('beforeend',"<footer id=\"boardSummary\" aria-label=\"Resumen del tablero\"><span id=\"summaryTotal\"></span><span id=\"summaryAverage\"></span><span id=\"summaryAgent\"></span><span id=\"summaryDevelopment\"></span><span id=\"summaryRepository\"></span><span id=\"summaryConnection\"></span><span>Versión 1.13.0</span></footer>");
 if(location.hash.startsWith('#tarjeta='))showSharedCard();
 else {
  render();
