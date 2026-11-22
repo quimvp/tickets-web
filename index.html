@@ -387,7 +387,7 @@ function renderBoardSummary(active){
  const leaders=agents.filter(agent=>agent.total===max).map(agent=>agent.name).join(', ');
  by('summaryRepository').textContent='Repositorio: '+(github?.repo??'—');
  by('summaryConnection').textContent=github?'Conexión activa':'Sin conexión';
- by('summaryTotal').textContent='Total: '+cards.length;
+ by('summaryTotal').textContent='Total abiertas: '+active.length;
  by('summaryAverage').textContent='Cierre medio: '+average;
  by('summaryAgent').textContent='Más asignadas: '+(leaders?leaders+' ('+max+')':'—');
  by('summaryDevelopment').textContent='Desarrollo: '+active.filter(card=>card.lane===2).length;
