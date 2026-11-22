@@ -92,8 +92,13 @@ body>header{flex:none}
 .report-actions{margin:10px 0;align-items:center}
 .report-actions a{color:#432db9}
 .report-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
+.board{grid-template-rows:var(--lane-height-0,minmax(min-content,1fr)) var(--lane-height-1,minmax(min-content,1.65fr)) var(--lane-height-2,minmax(min-content,1fr)) auto}
+.board .scroller{min-height:0}
+.board .lane-resize{position:relative;flex:0 0 12px;display:grid;place-items:center;width:100%;padding:0;border:0;border-radius:0;background:var(--zone);cursor:ns-resize;touch-action:none}
+.lane-resize::after{content:'';width:32px;height:3px;border-radius:999px;background:var(--dot)}
+.board .lane-resize:hover,.board .lane-resize:focus-visible{background:var(--zone-head)}
 </style>
-<header><div class="header-brand"><details class="app-menu" id="appMenu"><summary class="logo" aria-label="Menú del tablero" title="Menú del tablero">▦</summary><div class="menu-options"><button id="printBoard" type="button">Listar / imprimir tarjetas activas</button><button id="openReport" type="button">Informe analítico con ChatGPT</button></div></details><h1 class="board-title">Tablero de tarjetas</h1></div><div class="header-tools"><div class="toolbar"><button class="primary" id="new">＋ Nueva tarjeta</button></div><button id="connect">Conectar GitHub</button><time id="headerClock"></time></div></header>
+<header><div class="header-brand"><details class="app-menu" id="appMenu"><summary class="logo" aria-label="Menú del tablero" title="Menú del tablero">▦</summary><div class="menu-options"><button id="printBoard" type="button">Listar / imprimir tarjetas activas</button><button id="openReport" type="button">Informe analítico con ChatGPT</button></div></details><h1 class="board-title">Tablero de tarjetas</h1></div><div class="header-tools"><div class="toolbar"><button class="primary" id="new">＋ Nueva tarjeta</button></div><button type="button" id="reminderButton">Avisos</button><button id="connect">Conectar GitHub</button><time id="headerClock"></time></div></header>
 <main class="wrap">
 <p id="status" role="status">Conecta un repositorio privado de GitHub para cargar tus tarjetas.</p><button id="migrate" hidden>Importar tarjetas de este navegador</button><div class="layout"><div class="board" id="board"></div><section id="archiveBoard" class="lane archive-board" aria-labelledby="archiveTitle" hidden><div class="lane-head"><h2 id="archiveTitle">Archivadas <span class="count" id="archiveCount"></span></h2></div><div class="archive-canvas" id="archiveCanvas"></div></section><aside class="sidebar"><section class="sidebar-panel" aria-labelledby="tagsTitle"><h2 id="tagsTitle">Etiquetas</h2><input id="search" type="search" placeholder="Buscar tarjetas" aria-label="Buscar tarjetas"><div id="tags"></div><div id="tagCards"></div></section><section class="sidebar-panel" aria-labelledby="agentsTitle"><h2 id="agentsTitle">Agentes</h2><p id="agentEmpty" class="muted"></p><ul id="agentList" class="agent-list"></ul></section><button id="archiveToggle" type="button" aria-pressed="false">Ver archivadas</button></aside></div></main>
 <dialog id="connection"><form id="connectionForm">
@@ -104,7 +109,7 @@ body>header{flex:none}
 <button type="button" id="forget" hidden>Desconectar y olvidar token</button>
 <p id="connectError" role="alert"></p>
 <div class="end"><button type="button" data-close="connection">Cancelar</button><button class="primary">Conectar</button></div>
-</form></dialog><dialog id="editor"><form id="form"><h2 id="editorTitle"></h2><label>Título<input name="title" required maxlength="120"></label><label>Descripción<textarea name="notes" rows="2"></textarea></label><div class="fields"><label>Tipo<select name="type"><option>Ticket</option><option>Solicitud</option><option>Reunión</option><option>Desarrollo</option></select></label><label>Franja<select name="lane"></select></label><label>Entrada<input name="entry" type="date" required></label><label>Cierre<input name="close" type="date"></label><label>Prioridad<select name="priority"><option value="">Sin prioridad</option><option>Alta</option><option>Media</option><option>Baja</option></select></label></div><label>Agentes (separados por comas)<input name="agents"></label><label>Etiquetas (separadas por comas)<input name="tags"></label><div class="actions"><button type="button" id="remove" class="danger">Borrar</button><button type="button" id="archiveCard" hidden>Archivar</button><button type="button" id="duplicate" hidden>Duplicar</button><div class="export-tools" id="export" hidden role="group" aria-label="Exportar tarjeta"><button type="button" data-format="md">Markdown</button><button type="button" data-format="txt">TXT</button><button type="button" data-format="pdf">PDF</button></div><div class="end"><button type="button" data-close="editor">Cancelar</button><button class="primary">Guardar</button></div></div></form></dialog>
+</form></dialog><dialog id="editor"><form id="form"><h2 id="editorTitle"></h2><label>Título<input name="title" required maxlength="120"></label><label>Descripción<textarea name="notes" rows="2"></textarea></label><div class="fields"><label>Tipo<select name="type"><option>Ticket</option><option>Solicitud</option><option>Reunión</option><option>Desarrollo</option></select></label><label>Franja<select name="lane"></select></label><label>Entrada<input name="entry" type="date" required></label><label>Cierre<input name="close" type="date"></label><label>Prioridad<select name="priority"><option value="">Sin prioridad</option><option>Alta</option><option>Media</option><option>Baja</option></select></label></div><label class="check"><input type="checkbox" name="reminder"> Avisar si sigue abierta después de dos días</label><label>Agentes (separados por comas)<input name="agents"></label><label>Etiquetas (separadas por comas)<input name="tags"></label><div class="actions"><button type="button" id="remove" class="danger">Borrar</button><button type="button" id="archiveCard" hidden>Archivar</button><button type="button" id="duplicate" hidden>Duplicar</button><div class="export-tools" id="export" hidden role="group" aria-label="Exportar tarjeta"><button type="button" data-format="md">Markdown</button><button type="button" data-format="txt">TXT</button><button type="button" data-format="pdf">PDF</button></div><div class="end"><button type="button" data-close="editor">Cancelar</button><button class="primary">Guardar</button></div></div></form></dialog>
 <dialog id="deletion"><form id="deleteForm"><h2>Borrar tarjeta</h2><p id="deleteText"></p><label class="check"><input type="checkbox" required> Autorizo quitar la tarjeta del tablero</label><div class="end"><button type="button" data-close="deletion">Cancelar</button><button class="danger">Borrar tarjeta</button></div></form></dialog>
 <main id="sharedView" class="shared-view" hidden><article id="sharedCard" class="shared-card"></article></main>
 <dialog id="shareDialog" aria-labelledby="shareTitle">
@@ -114,6 +119,10 @@ body>header{flex:none}
 </dialog>
 <dialog id="duplicateDialog" aria-labelledby="duplicateTitle">
 <form id="duplicateForm"><h2 id="duplicateTitle">Duplicar tarjeta</h2><label>Nombre del duplicado<input name="title" required maxlength="120"></label><div class="end"><button type="button" data-close="duplicateDialog">Cancelar</button><button class="primary">Crear duplicado</button></div></form>
+</dialog>
+<dialog id="reminderDialog" role="alertdialog" aria-labelledby="reminderTitle">
+<h2 id="reminderTitle">Avisos de tarjetas</h2><p id="reminderEmpty">No hay tarjetas abiertas con aviso activado y más de dos días de antigüedad.</p>
+<ul id="reminderList"></ul><div class="end"><button type="button" class="primary" data-close="reminderDialog">Entendido</button></div>
 </dialog>
 <dialog id="overdueDialog" role="alertdialog" aria-labelledby="overdueTitle" aria-describedby="overdueDescription">
 <h2 id="overdueTitle">Tarjetas abiertas desde hace un mes</h2><p id="overdueDescription">Estas tarjetas siguen sin fecha de cierre.</p><ul id="overdueList"></ul><div class="end"><button class="primary" type="button" data-close="overdueDialog">Entendido</button></div>
@@ -359,6 +368,55 @@ by('migrate').onclick=async ()=>{
 };
 function button(label,action){const b=document.createElement('button');b.textContent=label;b.type='button';b.onclick=action;return b}
 function append(el,tag,value,cls){const child=document.createElement(tag);child.textContent=value;if(cls)child.className=cls;el.append(child);return child}
+const laneHeightKey='mesa-trabajo-lane-heights-v1';
+const minLaneHeight=88;
+let laneHeights={};
+try{laneHeights=JSON.parse(localStorage.getItem(laneHeightKey))||{}}catch{}
+function laneResize(section,index,name){
+ const handle=button('',()=>{});
+ handle.className='lane-resize';
+ handle.setAttribute('aria-label','Ajustar altura de '+name+' con las flechas arriba y abajo');
+ handle.title='Arrastra para ajustar la altura. Doble clic para restablecer.';
+ section.append(handle);
+ const apply=height=>{
+  if(Number.isFinite(height))board.style.setProperty('--lane-height-'+index,Math.max(minLaneHeight,Math.round(height))+'px');
+  else board.style.removeProperty('--lane-height-'+index);
+ };
+ const save=height=>{
+  if(Number.isFinite(height))laneHeights[index]=Math.max(minLaneHeight,Math.round(height));
+  else delete laneHeights[index];
+  apply(height);
+  try{localStorage.setItem(laneHeightKey,JSON.stringify(laneHeights))}catch{}
+ };
+ apply(laneHeights[index]);
+ let drag=null;
+ handle.addEventListener('pointerdown',event=>{
+  if(event.button!==0)return;
+  drag={pointer:event.pointerId,start:event.clientY,height:section.getBoundingClientRect().height};
+  handle.setPointerCapture(event.pointerId);
+ });
+ handle.addEventListener('pointermove',event=>{
+  if(drag?.pointer===event.pointerId)apply(drag.height+event.clientY-drag.start);
+ });
+ handle.addEventListener('pointerup',event=>{
+  if(drag?.pointer!==event.pointerId)return;
+  if(Math.abs(event.clientY-drag.start)>1)save(drag.height+event.clientY-drag.start);
+  else apply(laneHeights[index]);
+  drag=null;
+ });
+ handle.addEventListener('lostpointercapture',()=>{
+  if(!drag)return;
+  drag=null;
+  apply(laneHeights[index]);
+ });
+ handle.addEventListener('keydown',event=>{
+  const direction={ArrowUp:-1,ArrowDown:1}[event.key];
+  if(!direction)return;
+  event.preventDefault();
+  save(section.getBoundingClientRect().height+direction*(event.shiftKey?24:8));
+ });
+ handle.addEventListener('dblclick',()=>save(null));
+}
 lanes.forEach((name,index)=>{
  field('lane').add(new Option(name,index));
  const section=document.createElement('section');
@@ -369,6 +427,7 @@ lanes.forEach((name,index)=>{
  const scroll=append(section,'div','','scroller');
  const surface=append(scroll,'div','','surface');surface.dataset.lane=index;
  section.className='lane';section.dataset.lane=index;board.append(section);
+ laneResize(section,index,name);
 });
 const surfaces=[...board.querySelectorAll('.surface')];
 const agentKey=name=>name.normalize('NFC').toLocaleLowerCase('es');
@@ -421,6 +480,7 @@ function render(){
  renderArchive();
  renderAgents(active);
  renderBoardSummary(active);
+ updateReminderButton();
  by('new').disabled=!github||busy;
  by('connect').textContent=github?'Gestionar conexión':'Conectar GitHub';
  by('connect').disabled=busy;
@@ -563,7 +623,8 @@ function openCard(card,lane=1){
  if(!github||busy)return;
  editing=card?.id??null;form.reset();field('close').setCustomValidity('');
  const values=card??{type:lane===2?'Desarrollo':'Ticket',lane,entry:today()};
- for(const [name,value] of Object.entries(values)){const input=field(name);if(input)input.value=value}
+ for(const [name,value] of Object.entries(values)){const input=field(name);if(input&&input.type!=='checkbox')input.value=value}
+ field('reminder').checked=card?.reminder===true;
  by('editorTitle').textContent=card?'Editar tarjeta':'Nueva tarjeta';by('remove').hidden=!card;by('export').hidden=!card;by('duplicate').hidden=!card||isArchived(card);by('archiveCard').hidden=!card;by('archiveCard').textContent=isArchived(card)?'Restaurar':'Archivar';editor.showModal();field('title').focus();
 }
 field('close').oninput=field('entry').oninput=()=>field('close').setCustomValidity('');
@@ -572,6 +633,7 @@ form.onsubmit=async e=>{
  if(!values.title){field('title').value='';field('title').reportValidity();return}
  if(values.close&&values.close<values.entry){field('close').setCustomValidity('El cierre debe ser igual o posterior a la entrada.');field('close').reportValidity();return}
  values.lane=Number(values.lane);
+ values.reminder=field('reminder').checked;
  const previous=cards.find(c=>c.id===editing);
  const position=previous?.lane===values.lane?{x:previous.x,y:previous.y}:newCardPosition(values.lane);
  const card={...values,...position,archived:previous?.archived??false,sha:previous?.sha,id:previous?.id??newCardId()};
@@ -880,6 +942,32 @@ function monthAfter(entry){
  target.setUTCDate(Math.min(day,lastDay));
  return target.toISOString().slice(0,10);
 }
+function needsReminder(card,current=today()){
+ const age=(Date.parse(current)-Date.parse(card.entry))/86400000;
+ return card.reminder===true&&!isArchived(card)&&age>2;
+}
+function updateReminderButton(){
+ const pending=cards.filter(card=>needsReminder(card));
+ const control=by('reminderButton');
+ control.textContent=pending.length?'Avisos ('+pending.length+')':'Avisos';
+ control.disabled=!github;
+}
+function openReminderDialog(records){
+ const list=by('reminderList');
+ list.replaceChildren();
+ by('reminderEmpty').hidden=Boolean(records.length);
+ list.hidden=!records.length;
+ for(const card of records)append(list,'li',card.title+' · Entrada '+date(card.entry));
+ by('reminderDialog').showModal();
+}
+by('reminderButton').onclick=()=>{
+ if(!github)return;
+ const reminders=cards.filter(card=>needsReminder(card));
+ openReminderDialog(reminders);
+ const repo=github.repo.toLowerCase();
+ if(!notifiedByRepo.has(repo))notifiedByRepo.set(repo,new Set());
+ for(const card of reminders)notifiedByRepo.get(repo).add('reminder:'+card.id);
+};
 const notifiedByRepo=new Map();
 function showOverdue(){
  if(!github||busy||document.hidden||document.querySelector('dialog[open]'))return;
@@ -891,6 +979,12 @@ function showOverdue(){
   const due=monthAfter(card.entry);
   return !isArchived(card)&&!card.close&&due&&due<=current&&!notified.has(card.id);
  });
+ const reminders=cards.filter(card=>needsReminder(card,current)&&!notified.has('reminder:'+card.id));
+ if(reminders.length){
+  openReminderDialog(reminders);
+  for(const card of reminders)notified.add('reminder:'+card.id);
+  return;
+ }
  if(!overdue.length)return;
  const list=by('overdueList');
  list.replaceChildren();
@@ -899,7 +993,7 @@ function showOverdue(){
  for(const card of overdue)notified.add(card.id);
 }
 document.addEventListener('visibilitychange',showOverdue);
-setInterval(showOverdue,60000);
+setInterval(()=>{updateReminderButton();showOverdue()},60000);
 document.querySelectorAll('dialog').forEach(dialog=>dialog.addEventListener('close',showOverdue));
 board.insertAdjacentHTML('beforeend',"<footer id=\"boardSummary\" aria-label=\"Resumen del tablero\"><span id=\"summaryTotal\"></span><span id=\"summaryAverage\"></span><span id=\"summaryAgent\"></span><span id=\"summaryDevelopment\"></span><span id=\"summaryRepository\"></span><span id=\"summaryConnection\"></span><span>Versión 1.10.2</span></footer>");
 if(location.hash.startsWith('#tarjeta='))showSharedCard();
