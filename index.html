@@ -385,6 +385,8 @@ function renderBoardSummary(active){
  const agents=assignedAgents(active);
  const max=Math.max(0,...agents.map(agent=>agent.total));
  const leaders=agents.filter(agent=>agent.total===max).map(agent=>agent.name).join(', ');
+ by('summaryRepository').textContent='Repositorio: '+(github?.repo??'—');
+ by('summaryConnection').textContent=github?'Conexión activa':'Sin conexión';
  by('summaryTotal').textContent='Total: '+cards.length;
  by('summaryAverage').textContent='Cierre medio: '+average;
  by('summaryAgent').textContent='Más asignadas: '+(leaders?leaders+' ('+max+')':'—');
@@ -728,7 +730,7 @@ function showOverdue(){
 document.addEventListener('visibilitychange',showOverdue);
 setInterval(showOverdue,60000);
 document.querySelectorAll('dialog').forEach(dialog=>dialog.addEventListener('close',showOverdue));
-board.insertAdjacentHTML('beforeend',"<footer id=\"boardSummary\" aria-label=\"Resumen del tablero\"><span id=\"summaryTotal\"></span><span id=\"summaryAverage\"></span><span id=\"summaryAgent\"></span><span id=\"summaryDevelopment\"></span></footer>");
+board.insertAdjacentHTML('beforeend',"<footer id=\"boardSummary\" aria-label=\"Resumen del tablero\"><span id=\"summaryTotal\"></span><span id=\"summaryAverage\"></span><span id=\"summaryAgent\"></span><span id=\"summaryDevelopment\"></span><span id=\"summaryRepository\"></span><span id=\"summaryConnection\"></span><span>Versión 1.10.2</span></footer>");
 if(location.hash.startsWith('#tarjeta='))showSharedCard();
 else {
  render();
