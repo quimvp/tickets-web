@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Tablero de tarjetas</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f3f5f9;color:#17243b;font:16px system-ui,sans-serif}header{background:#14223a;color:white;padding:16px clamp(18px,4vw,56px);display:flex;align-items:center;gap:12px;font-weight:700}.logo{background:#735bfa;border-radius:10px;padding:7px 10px}.wrap{padding:30px clamp(16px,4vw,56px)}.lane-head,.actions{display:flex;align-items:center;justify-content:space-between;gap:12px}.board-title{font-size:22px;line-height:30px;letter-spacing:-.035em;margin:0;white-space:nowrap}p{margin:8px 0;color:#52617b}.layout{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:18px;margin-top:22px}.board{min-width:0;display:grid;gap:14px}.lane,dialog{background:white;border:1px solid #dbe2ef;border-radius:16px}.lane{overflow:hidden}.lane-head{padding:10px 14px;border-bottom:1px solid #e5eaf3}.lane-head h2,aside h2{margin:0;font-size:16px}.count{color:#52617b;font-weight:500;margin-left:8px}.scroller{overflow:auto}.surface{position:relative;min-width:740px;background:radial-gradient(#d8dfec 1px,transparent 1px) 0 0/18px 18px #f8f9fc}.surface.over{background-color:#eeebff}.card{position:absolute;width:218px;height:132px;background:var(--color);border:1px solid #cdd6e6;border-left:5px solid var(--accent);border-radius:10px;padding:9px 10px;box-shadow:0 3px 7px #16243a15;cursor:grab;touch-action:none;user-select:none;overflow:hidden}.card[data-lane="0"]{--color:#ffedef;--accent:#cc304d}.card[data-lane="1"]{--color:#fff1df;--accent:#ba590d}.card[data-lane="2"]{--color:#e6f7ec;--accent:#23834e}.card.moving{z-index:10;cursor:grabbing;pointer-events:none}.card-top{display:flex;align-items:center;justify-content:space-between;gap:5px}.card strong,.meta{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.card strong{margin:5px 0}.meta{font-size:13px;color:#465572;line-height:1.35}.badge{font-size:13px;font-weight:650}.card button{padding:1px 6px}.chip{font-size:14px;padding:5px 9px}button,input,select,textarea{font:inherit}button{cursor:pointer;border:1px solid #ccd5e5;background:white;color:#17243b;border-radius:8px;padding:7px 10px}button:hover{background:#edf0ff}button.primary{background:#5844db;color:white;border-color:#5844db;font-weight:650}button.active{color:#432db9;background:#ede9ff;border-color:#b9adff}aside input{width:100%;margin:12px 0}#tags,#tagCards{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}#tagCards button{text-align:left;width:100%;overflow-wrap:anywhere}.muted{font-size:14px;color:#52617b}dialog{width:min(560px,calc(100% - 24px));padding:22px;max-height:94vh}dialog::backdrop{background:#14223a88}dialog h2{margin:0 0 14px}form{display:grid;gap:10px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:grid;gap:4px;font-size:14px;font-weight:600;min-width:0}input,select,textarea{min-width:0;padding:7px;border:1px solid #bfcadf;border-radius:7px;background:#fff;color:inherit}textarea{resize:vertical}.danger{color:#a21b35}.check{display:flex;align-items:center}.actions{flex-wrap:wrap}.end{display:flex;gap:7px;margin-left:auto}[hidden]{display:none!important}@media(max-width:780px){.layout{grid-template-columns:1fr}.wrap{padding-top:20px}}
+*{box-sizing:border-box}body{margin:0;background:#f3f5f9;color:#17243b;font:16px system-ui,sans-serif}header{background:#14223a;color:white;padding:16px clamp(18px,4vw,56px);display:flex;align-items:center;gap:12px;font-weight:700}.logo{background:#735bfa;border-radius:10px;padding:7px 10px}.wrap{padding:30px clamp(16px,4vw,56px)}.lane-head,.actions{display:flex;align-items:center;justify-content:space-between;gap:12px}.board-title{font-size:22px;line-height:30px;letter-spacing:-.035em;margin:0;white-space:nowrap}p{margin:8px 0;color:#52617b}.layout{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:18px;margin-top:22px}.board{min-width:0;display:grid;gap:14px}.lane,dialog{background:white;border:1px solid #dbe2ef;border-radius:16px}.lane{overflow:hidden}.lane-head{padding:10px 14px;border-bottom:1px solid #e5eaf3}.lane-head h2,aside h2{margin:0;font-size:16px}.count{color:#52617b;font-weight:500;margin-left:8px}.scroller{overflow:auto} .surface{position:relative;background:radial-gradient(#d8dfec 1px,transparent 1px) 0 0/18px 18px #f8f9fc}.surface.over{background-color:#eeebff}.card{position:absolute;width:218px;height:132px;background:var(--color);border:1px solid #cdd6e6;border-left:5px solid var(--accent);border-radius:10px;padding:9px 10px;box-shadow:0 3px 7px #16243a15;cursor:grab;touch-action:none;user-select:none;overflow:hidden}.card[data-lane="0"]{--color:#ffedef;--accent:#cc304d}.card[data-lane="1"]{--color:#fff1df;--accent:#ba590d}.card[data-lane="2"]{--color:#e6f7ec;--accent:#23834e}.card.moving{z-index:10;cursor:grabbing;pointer-events:none}.card-top{display:flex;align-items:center;justify-content:space-between;gap:5px}.card strong,.meta{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.card strong{margin:5px 0}.meta{font-size:13px;color:#465572;line-height:1.35}.badge{font-size:13px;font-weight:650}.card button{padding:1px 6px}.chip{font-size:14px;padding:5px 9px}button,input,select,textarea{font:inherit}button{cursor:pointer;border:1px solid #ccd5e5;background:white;color:#17243b;border-radius:8px;padding:7px 10px}button:hover{background:#edf0ff}button.primary{background:#5844db;color:white;border-color:#5844db;font-weight:650}button.active{color:#432db9;background:#ede9ff;border-color:#b9adff}aside input{width:100%;margin:12px 0}#tags,#tagCards{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}#tagCards button{text-align:left;width:100%;overflow-wrap:anywhere}.muted{font-size:14px;color:#52617b}dialog{width:min(560px,calc(100% - 24px));padding:22px;max-height:94vh}dialog::backdrop{background:#14223a88}dialog h2{margin:0 0 14px}form{display:grid;gap:10px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:grid;gap:4px;font-size:14px;font-weight:600;min-width:0}input,select,textarea{min-width:0;padding:7px;border:1px solid #bfcadf;border-radius:7px;background:#fff;color:inherit}textarea{resize:vertical}.danger{color:#a21b35}.check{display:flex;align-items:center}.actions{flex-wrap:wrap}.end{display:flex;gap:7px;margin-left:auto}[hidden]{display:none!important}@media(max-width:780px){.layout{grid-template-columns:1fr}.wrap{padding-top:20px}}
 
 .lane[data-lane="0"]{--zone:#fbd1d8;--zone-head:#f6aeba;--dot:#d67384}
 .lane[data-lane="1"]{--zone:#ffe2bd;--zone-head:#ffce90;--dot:#ce8e48}
@@ -56,7 +56,7 @@ header{flex-wrap:wrap}
 .board .lane-head h2{font-size:14px;font-weight:550;color:#414d63}
 .board .lane-head button{padding:1px 7px;background:#ffffffb8;border-color:transparent}
 .card .share-card{position:absolute;right:7px;bottom:6px;padding:2px 6px;font-size:12px;background:#ffffffd9}
-.card:has(.share-card) .meta:last-of-type{padding-right:65px}
+.card:has(.share-card) .meta:last-of-type{padding-right:31px}
 .shared-view{max-width:740px;margin:32px auto;padding:0 16px}
 .shared-card{background:white;border:1px solid #dbe2ef;border-radius:16px;padding:22px;overflow-wrap:anywhere}
 .shared-card h1{font-size:clamp(22px,5vw,32px);margin:0 0 14px}
@@ -64,6 +64,10 @@ header{flex-wrap:wrap}
 .shared-card dt{font-weight:650}
 #shareNotice{margin:0}
 #shareUrl{width:100%}
+.wrap{padding:10px clamp(8px,1.4vw,20px)}
+.layout{gap:10px;margin-top:0;grid-template-columns:minmax(0,1fr) minmax(190px,230px)}
+.card .share-card{display:grid;place-items:center;width:27px;height:25px;padding:0}
+@media(max-width:780px){.layout{grid-template-columns:minmax(0,1fr)}}
 </style>
 <header><div class="header-brand"><span class="logo" aria-hidden="true">▦</span><h1 class="board-title">Tablero de tarjetas</h1></div><div class="header-tools"><div class="toolbar"><button id="printBoard" type="button">Vista de impresión</button><button class="primary" id="new">＋ Nueva tarjeta</button></div><button id="connect">Conectar GitHub</button><time id="headerClock"></time></div></header>
 <main class="wrap">
@@ -114,7 +118,11 @@ const today=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid'}).form
 let cards=[], showingArchive=false, selectedAgent='', selectedTag='', editing=null, github=null, busy=false;
 const split=value=>[...new Set(value.split(',').map(part=>part.trim()).filter(Boolean))];
 const date=value=>value?value.split('-').reverse().join('/'):'Sin fecha';
-const status=message=>{by('status').textContent=message};
+const status=message=>{
+ const label=by('status');
+ label.textContent=message;
+ label.hidden=Boolean(github&&message==='Conectado a '+github.repo);
+};
 const markdownHeader=/^<!-- mesa-de-trabajo ([A-Za-z0-9+/=]+) -->\r?\n/;
 const encode=value=>{
  const bytes=new TextEncoder().encode(value);
@@ -145,7 +153,8 @@ async function loadCards(connection){
  }));
 }
 const urgentLimit=3;
-const isActiveUrgent=card=>card?.lane===0&&!card.archived;
+const isArchived=card=>Boolean(card?.archived||card?.close);
+const isActiveUrgent=card=>card?.lane===0&&!isArchived(card);
 const exceedsUrgentLimit=(card,records)=>isActiveUrgent(card)
  && !records.some(item=>item.id===card.id&&isActiveUrgent(item))
  && records.filter(isActiveUrgent).length>=urgentLimit;
@@ -158,6 +167,7 @@ async function writeCard(card){
   }
  }
  const {sha,...record}=card;
+ record.archived=isArchived(record);
  const content=encode('<!-- mesa-de-trabajo '+encode(JSON.stringify(record))+' -->\n'+cardMarkdown(record));
  const result=await request(github,filePath(card.id),'PUT',{message:'Guardar tarjeta '+card.id,content,sha});
  cards=cards.filter(item=>item.id!==card.id).concat({...record,sha:result.content.sha});
@@ -323,7 +333,7 @@ function renderAgents(records){
 }
 function render(){
  setTimeout(showOverdue,0);
- const active=cards.filter(card=>!card.archived);
+ const active=cards.filter(card=>!isArchived(card));
  renderArchive();
  renderAgents(active);
  by('new').disabled=!github||busy;
@@ -339,7 +349,7 @@ function render(){
  surfaces.forEach((surface,lane)=>{
   const all=active.filter(c=>c.lane===lane), shown=visible.filter(c=>c.lane===lane);
   surface.closest('section').querySelector('.count').textContent=shown.length;
-  surface.style.minWidth=Math.max(740,...all.map(c=>c.x+248))+'px';
+  surface.style.minWidth=Math.max(0,...all.map(c=>c.x+248))+'px';
   surface.style.height=Math.max(156,...all.map(c=>c.y+146))+'px';
   surface.replaceChildren(...shown.map(drawCard));
  });
@@ -351,7 +361,7 @@ function render(){
  if(!tagged.length)append(by('tagCards'),'span','Sin tarjetas con etiquetas','muted');
 }
 function renderArchive(){
- const archived=cards.filter(card=>card.archived);
+ const archived=cards.filter(isArchived);
  board.hidden=showingArchive;
  by('archiveBoard').hidden=!showingArchive;
  by('archiveToggle').disabled=!github||busy;
@@ -378,11 +388,13 @@ function drawCard(c){
  append(el,'span','Entrada '+date(c.entry),'meta');
  append(el,'span','Cierre '+date(c.close),'meta');
  append(el,'span',c.agents||'Sin agentes','meta').title=c.agents;
- const share=button('Compartir',()=>openShare(c));
+ const share=button('',()=>openShare(c));
+ share.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4m-6.8 7 6.8 4"/></svg>';
+ share.title='Compartir';
  share.className='share-card';
  share.setAttribute('aria-label','Compartir '+c.title);
  el.append(share);
- if(!c.archived)el.addEventListener('pointerdown',event=>startDrag(event,el,c));
+ if(!isArchived(c))el.addEventListener('pointerdown',event=>startDrag(event,el,c));
  return el;
 }
 function startDrag(event,el,c){
@@ -417,7 +429,7 @@ function startDrag(event,el,c){
  el.addEventListener('pointermove',move);el.addEventListener('pointerup',finish);el.addEventListener('pointercancel',finish);
 }
 function newCardPosition(lane){
- return {x:12,y:Math.max(12,...cards.filter(c=>!c.archived&&c.lane===lane).map(c=>c.y+144))};
+ return {x:12,y:Math.max(12,...cards.filter(c=>!isArchived(c)&&c.lane===lane).map(c=>c.y+144))};
 }
 const newCardId=()=>globalThis.crypto?.randomUUID?.()??String(Date.now());
 const duplicateForm=by('duplicateForm');
@@ -447,7 +459,7 @@ function openCard(card,lane=1){
  editing=card?.id??null;form.reset();field('close').setCustomValidity('');
  const values=card??{type:lane===2?'Desarrollo':'Ticket',lane,entry:today()};
  for(const [name,value] of Object.entries(values)){const input=field(name);if(input)input.value=value}
- by('editorTitle').textContent=card?'Editar tarjeta':'Nueva tarjeta';by('remove').hidden=!card;by('export').hidden=!card;by('duplicate').hidden=!card||Boolean(card.archived);by('archiveCard').hidden=!card;by('archiveCard').textContent=card?.archived?'Restaurar':'Archivar';editor.showModal();field('title').focus();
+ by('editorTitle').textContent=card?'Editar tarjeta':'Nueva tarjeta';by('remove').hidden=!card;by('export').hidden=!card;by('duplicate').hidden=!card||isArchived(card);by('archiveCard').hidden=!card;by('archiveCard').textContent=isArchived(card)?'Restaurar':'Archivar';editor.showModal();field('title').focus();
 }
 field('close').oninput=field('entry').oninput=()=>field('close').setCustomValidity('');
 form.onsubmit=async e=>{
@@ -508,7 +520,7 @@ function printOrder(records,order){
 }
 let previewCard=null;
 function renderPreview(){
- const records=previewCard?[previewCard]:printOrder(cards.filter(card=>Boolean(card.archived)===showingArchive),by('sortOrder').value);
+ const records=previewCard?[previewCard]:printOrder(cards.filter(card=>isArchived(card)===showingArchive),by('sortOrder').value);
  by('sortControl').hidden=Boolean(previewCard);
  by('previewTitle').textContent=previewCard?'Ficha de tarjeta':showingArchive?'Listado de tarjetas archivadas':'Listado de tarjetas';
  const list=by('printRecords');
@@ -559,7 +571,11 @@ document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>by(b.dataset.
 by('archiveCard').onclick=async ()=>{
  const card=cards.find(item=>item.id===editing);
  if(!card)return;
- if(await change(()=>writeCard({...card,archived:!card.archived})))editor.close();
+ const restored=isArchived(card);
+ const updated=restored
+  ?{...card,...newCardPosition(1),lane:1,close:'',archived:false}
+  :{...card,archived:true};
+ if(await change(()=>writeCard(updated)))editor.close();
 };
 by('remove').onclick=()=>{by('deleteForm').reset();by('deleteText').textContent=cards.find(c=>c.id===editing).title;deletion.showModal()};
 by('deleteForm').onsubmit=async e=>{
@@ -655,7 +671,7 @@ function showOverdue(){
  const current=today();
  const overdue=cards.filter(card=>{
   const due=monthAfter(card.entry);
-  return !card.archived&&!card.close&&due&&due<=current&&!notified.has(card.id);
+  return !isArchived(card)&&!card.close&&due&&due<=current&&!notified.has(card.id);
  });
  if(!overdue.length)return;
  const list=by('overdueList');
