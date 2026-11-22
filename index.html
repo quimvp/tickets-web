@@ -83,8 +83,17 @@ body>header{flex:none}
 #boardSummary{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:10px;line-height:10px;color:#46536a;min-width:0;overflow-wrap:anywhere}
 .card.dissolving{pointer-events:none;overflow:visible;z-index:2}
 .dissolve-particle{position:absolute;width:6px;height:6px;border-radius:2px;background:var(--accent);pointer-events:none}
+.app-menu{position:relative}
+.app-menu summary{cursor:pointer;list-style:none}
+.app-menu summary::-webkit-details-marker{display:none}
+.menu-options{position:absolute;left:0;top:calc(100% + 7px);z-index:12;display:grid;gap:5px;width:max-content;max-width:min(300px,85vw);padding:8px;border:1px solid #dbe2ef;border-radius:10px;background:#fff;box-shadow:0 8px 24px #14223a35}
+.menu-options button{text-align:left}
+#reportDialog{width:min(690px,calc(100% - 24px))}
+.report-actions{margin:10px 0;align-items:center}
+.report-actions a{color:#432db9}
+.report-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
 </style>
-<header><div class="header-brand"><span class="logo" aria-hidden="true">▦</span><h1 class="board-title">Tablero de tarjetas</h1></div><div class="header-tools"><div class="toolbar"><button id="printBoard" type="button">Vista de impresión</button><button class="primary" id="new">＋ Nueva tarjeta</button></div><button id="connect">Conectar GitHub</button><time id="headerClock"></time></div></header>
+<header><div class="header-brand"><details class="app-menu" id="appMenu"><summary class="logo" aria-label="Menú del tablero" title="Menú del tablero">▦</summary><div class="menu-options"><button id="printBoard" type="button">Listar / imprimir tarjetas activas</button><button id="openReport" type="button">Informe analítico con ChatGPT</button></div></details><h1 class="board-title">Tablero de tarjetas</h1></div><div class="header-tools"><div class="toolbar"><button class="primary" id="new">＋ Nueva tarjeta</button></div><button id="connect">Conectar GitHub</button><time id="headerClock"></time></div></header>
 <main class="wrap">
 <p id="status" role="status">Conecta un repositorio privado de GitHub para cargar tus tarjetas.</p><button id="migrate" hidden>Importar tarjetas de este navegador</button><div class="layout"><div class="board" id="board"></div><section id="archiveBoard" class="lane archive-board" aria-labelledby="archiveTitle" hidden><div class="lane-head"><h2 id="archiveTitle">Archivadas <span class="count" id="archiveCount"></span></h2></div><div class="archive-canvas" id="archiveCanvas"></div></section><aside class="sidebar"><section class="sidebar-panel" aria-labelledby="tagsTitle"><h2 id="tagsTitle">Etiquetas</h2><input id="search" type="search" placeholder="Buscar tarjetas" aria-label="Buscar tarjetas"><div id="tags"></div><div id="tagCards"></div></section><section class="sidebar-panel" aria-labelledby="agentsTitle"><h2 id="agentsTitle">Agentes</h2><p id="agentEmpty" class="muted"></p><ul id="agentList" class="agent-list"></ul></section><button id="archiveToggle" type="button" aria-pressed="false">Ver archivadas</button></aside></div></main>
 <dialog id="connection"><form id="connectionForm">
@@ -108,6 +117,14 @@ body>header{flex:none}
 </dialog>
 <dialog id="overdueDialog" role="alertdialog" aria-labelledby="overdueTitle" aria-describedby="overdueDescription">
 <h2 id="overdueTitle">Tarjetas abiertas desde hace un mes</h2><p id="overdueDescription">Estas tarjetas siguen sin fecha de cierre.</p><ul id="overdueList"></ul><div class="end"><button class="primary" type="button" data-close="overdueDialog">Entendido</button></div>
+</dialog>
+<dialog id="reportDialog" aria-labelledby="reportTitle">
+<h2 id="reportTitle">Informe analítico</h2>
+<p>El informe incluye tarjetas activas y archivadas. La consulta para ChatGPT usa fechas, zonas, tipos, prioridades y agentes. Puedes revisar la consulta antes de compartirla.</p>
+<label>Consulta para ChatGPT<textarea id="reportPrompt" rows="5" readonly></textarea></label>
+<div class="toolbar report-actions"><button id="copyReport" type="button">Copiar consulta</button><a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Abrir ChatGPT</a><span id="reportFeedback" role="status"></span></div>
+<label>Análisis de ChatGPT<textarea id="reportAnalysis" rows="7" placeholder="Pega aquí la respuesta de ChatGPT"></textarea></label>
+<div class="end report-actions"><button type="button" data-close="reportDialog">Cerrar</button><button id="previewReport" type="button" class="primary">Vista del informe / PDF</button></div>
 </dialog>
 <dialog id="preview" aria-labelledby="previewTitle">
 <div class="preview-controls"><label id="sortControl">Orden del listado<select id="sortOrder"><option value="date">Fecha de entrada</option><option value="priority">Prioridad y fecha de entrada</option></select></label><button type="button" data-close="preview">Volver</button><button type="button" id="printPdf" class="primary">Imprimir / Guardar como PDF</button></div>
@@ -409,6 +426,7 @@ function render(){
  by('connect').disabled=busy;
  by('forget').hidden=!github&&!rememberedConnection();
  by('printBoard').disabled=!github;
+ by('openReport').disabled=!github;
  by('migrate').hidden=!github||!legacyCards().length;
  const query=by('search').value.trim().toLocaleLowerCase('es');
  const tags=[...new Set(active.flatMap(c=>split(c.tags)))].sort((a,b)=>a.localeCompare(b,'es'));
@@ -606,10 +624,106 @@ function printOrder(records,order){
  );
 }
 let previewCard=null;
+function reportData(records){
+ return records.map(card=>({
+  estado:isArchived(card)?'Archivada':'Activa',zona:lanes[card.lane],tipo:card.type,
+  prioridad:card.priority||'Sin prioridad',entrada:card.entry,cierre:card.close||null,
+  agentes:split(card.agents||'')
+ }));
+}
+function summarizeReport(records){
+ const active=records.filter(card=>!isArchived(card));
+ const rows=[
+  'Tarjetas totales: '+records.length,
+  'Activas: '+active.length+' · Archivadas: '+(records.length-active.length),
+  'Con fecha de cierre: '+records.filter(card=>card.close).length,
+  'Archivadas sin fecha de cierre: '+records.filter(card=>isArchived(card)&&!card.close).length,
+  '',
+  'Distribución por zona (activas / archivadas)'
+ ];
+ lanes.forEach((lane,index)=>{
+  const zone=records.filter(card=>card.lane===index);
+  const open=zone.filter(card=>!isArchived(card)).length;
+  rows.push(lane+': '+open+' / '+(zone.length-open));
+ });
+ for(const [label,field] of [['Tipo','type'],['Prioridad','priority']]){
+  const counts=new Map();
+  for(const card of records){
+   const value=card[field]||(field==='priority'?'Sin prioridad':'Sin tipo');
+   counts.set(value,(counts.get(value)??0)+1);
+  }
+  rows.push('',label+' (todas las tarjetas)',...Array.from(counts,([value,total])=>value+': '+total));
+ }
+ const durations=records.filter(card=>card.close&&card.entry)
+  .map(card=>(Date.parse(card.close)-Date.parse(card.entry))/86400000).filter(value=>Number.isFinite(value)&&value>=0).sort((a,b)=>a-b);
+ const n=durations.length;
+ rows.push('','Tiempos de cierre');
+ if(n){
+  const format=new Intl.NumberFormat('es-ES',{maximumFractionDigits:1});
+  const mean=durations.reduce((sum,days)=>sum+days,0)/n;
+  const middle=(durations[Math.floor((n-1)/2)]+durations[Math.floor(n/2)])/2;
+  rows.push('Casos con fechas válidas: '+n,'Media: '+format.format(mean)+' días','Mediana: '+format.format(middle)+' días','Mínimo / máximo: '+durations[0]+' / '+durations[n-1]+' días');
+ }else rows.push('Sin cierres con fechas válidas.');
+ rows.push('','Carga por agente (activas / archivadas)');
+ const activeByAgent=new Map(assignedAgents(active).map(agent=>[agent.key,agent.total]));
+ for(const agent of assignedAgents(records)){
+  const open=activeByAgent.get(agent.key)??0;
+  rows.push(agent.name+': '+open+' / '+(agent.total-open));
+ }
+ rows.push('Activas sin agente: '+active.filter(card=>!split(card.agents||'').length).length);
+ rows.push('Activas abiertas desde hace un mes: '+active.filter(card=>{const due=monthAfter(card.entry);return due&&due<=today()}).length);
+ return rows.join('\n');
+}
+let reportPreview=null;
+let analysisRepo='';
+by('openReport').onclick=()=>{
+ if(!github)return;
+ by('appMenu').open=false;
+ if(analysisRepo!==github.repo){
+  by('reportAnalysis').value='';
+  analysisRepo=github.repo;
+ }
+ by('reportFeedback').textContent='';
+ by('reportPrompt').value=[
+  'Analiza en español estas tarjetas activas y archivadas. Fecha de referencia: '+today()+'.',
+  'Incluye resumen ejecutivo, tendencias de entrada y cierre por mes, tiempos de cierre (media y mediana), antigüedad de las activas, carga por agente y zona, prioridades, riesgos y acciones concretas.',
+  'Separa archivadas sin fecha de cierre de las cerradas. Explica los empates y los datos insuficientes. Usa solo los datos proporcionados y no inventes causas. Da un informe listo para imprimir.',
+  '',
+  JSON.stringify(reportData(cards),null,2)
+ ].join('\n');
+ by('reportDialog').showModal();
+};
+by('copyReport').onclick=async ()=>{
+ const prompt=by('reportPrompt');
+ try{await navigator.clipboard.writeText(prompt.value);by('reportFeedback').textContent='Consulta copiada.'}
+ catch{prompt.select();by('reportFeedback').textContent='Copia la consulta seleccionada.'}
+};
+by('previewReport').onclick=()=>{
+ if(!github)return;
+ reportPreview={summary:summarizeReport(cards),analysis:by('reportAnalysis').value.trim(),date:today()};
+ previewCard=null;
+ by('reportDialog').close();
+ renderPreview();
+ by('preview').showModal();
+};
+let printArchive=false;
 function renderPreview(){
- const records=previewCard?[previewCard]:printOrder(cards.filter(card=>isArchived(card)===showingArchive),by('sortOrder').value);
+ if(reportPreview){
+  by('sortControl').hidden=true;
+  by('previewTitle').textContent='Informe analítico de tarjetas';
+  const list=by('printRecords');
+  list.replaceChildren();
+  append(list,'p','Fecha del informe: '+date(reportPreview.date));
+  append(list,'p',reportPreview.summary,'report-text');
+  if(reportPreview.analysis){
+   append(list,'h3','Análisis de ChatGPT');
+   append(list,'p',reportPreview.analysis,'report-text');
+  }
+  return;
+ }
+ const records=previewCard?[previewCard]:printOrder(cards.filter(card=>isArchived(card)===printArchive),by('sortOrder').value);
  by('sortControl').hidden=Boolean(previewCard);
- by('previewTitle').textContent=previewCard?'Ficha de tarjeta':showingArchive?'Listado de tarjetas archivadas':'Listado de tarjetas';
+ by('previewTitle').textContent=previewCard?'Ficha de tarjeta':printArchive?'Listado de tarjetas archivadas':'Listado de tarjetas activas';
  const list=by('printRecords');
  list.replaceChildren();
  if(!records.length)append(list,'p','No hay tarjetas para imprimir.');
@@ -626,12 +740,14 @@ function renderPreview(){
   if(card.notes)append(record,'p',card.notes,'print-notes');
  }
 }
-function openPreview(card){
+function openPreview(card,archive=showingArchive){
+ reportPreview=null;
+ printArchive=archive;
  previewCard=card;
  renderPreview();
  by('preview').showModal();
 }
-by('printBoard').onclick=()=>openPreview(null);
+by('printBoard').onclick=()=>{by('appMenu').open=false;openPreview(null,false)};
 by('sortOrder').onchange=renderPreview;
 by('printPdf').onclick=()=>{
  const output=by('printSheet').cloneNode(true);
