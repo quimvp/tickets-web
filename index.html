@@ -55,6 +55,15 @@ header{flex-wrap:wrap}
 .board .lane-head{padding:3px 10px;border-bottom:0;background:var(--zone)}
 .board .lane-head h2{font-size:14px;font-weight:550;color:#414d63}
 .board .lane-head button{padding:1px 7px;background:#ffffffb8;border-color:transparent}
+.card .share-card{position:absolute;right:7px;bottom:6px;padding:2px 6px;font-size:12px;background:#ffffffd9}
+.card:has(.share-card) .meta:last-of-type{padding-right:65px}
+.shared-view{max-width:740px;margin:32px auto;padding:0 16px}
+.shared-card{background:white;border:1px solid #dbe2ef;border-radius:16px;padding:22px;overflow-wrap:anywhere}
+.shared-card h1{font-size:clamp(22px,5vw,32px);margin:0 0 14px}
+.shared-card dd{margin:0 0 9px}
+.shared-card dt{font-weight:650}
+#shareNotice{margin:0}
+#shareUrl{width:100%}
 </style>
 <header><div class="header-brand"><span class="logo" aria-hidden="true">▦</span><h1 class="board-title">Tablero de tarjetas</h1></div><div class="header-tools"><div class="toolbar"><button id="printBoard" type="button">Vista de impresión</button><button class="primary" id="new">＋ Nueva tarjeta</button></div><button id="connect">Conectar GitHub</button><time id="headerClock"></time></div></header>
 <main class="wrap">
@@ -69,6 +78,12 @@ header{flex-wrap:wrap}
 <div class="end"><button type="button" data-close="connection">Cancelar</button><button class="primary">Conectar</button></div>
 </form></dialog><dialog id="editor"><form id="form"><h2 id="editorTitle"></h2><label>Título<input name="title" required maxlength="120"></label><label>Descripción<textarea name="notes" rows="2"></textarea></label><div class="fields"><label>Tipo<select name="type"><option>Ticket</option><option>Solicitud</option><option>Reunión</option><option>Desarrollo</option></select></label><label>Franja<select name="lane"></select></label><label>Entrada<input name="entry" type="date" required></label><label>Cierre<input name="close" type="date"></label><label>Prioridad<select name="priority"><option value="">Sin prioridad</option><option>Alta</option><option>Media</option><option>Baja</option></select></label></div><label>Agentes (separados por comas)<input name="agents"></label><label>Etiquetas (separadas por comas)<input name="tags"></label><div class="actions"><button type="button" id="remove" class="danger">Borrar</button><button type="button" id="archiveCard" hidden>Archivar</button><button type="button" id="duplicate" hidden>Duplicar</button><div class="export-tools" id="export" hidden role="group" aria-label="Exportar tarjeta"><button type="button" data-format="md">Markdown</button><button type="button" data-format="txt">TXT</button><button type="button" data-format="pdf">PDF</button></div><div class="end"><button type="button" data-close="editor">Cancelar</button><button class="primary">Guardar</button></div></div></form></dialog>
 <dialog id="deletion"><form id="deleteForm"><h2>Borrar tarjeta</h2><p id="deleteText"></p><label class="check"><input type="checkbox" required> Autorizo quitar la tarjeta del tablero</label><div class="end"><button type="button" data-close="deletion">Cancelar</button><button class="danger">Borrar tarjeta</button></div></form></dialog>
+<main id="sharedView" class="shared-view" hidden><article id="sharedCard" class="shared-card"></article></main>
+<dialog id="shareDialog" aria-labelledby="shareTitle">
+<form id="shareForm"><h2 id="shareTitle">Compartir tarjeta</h2><p>El enlace contiene una copia del título, la descripción, las fechas, la zona y la prioridad. Cualquiera con el enlace podrá leerla, incluso si se reenvía.</p>
+<div id="shareResult" hidden><label>Enlace de la tarjeta<input id="shareUrl" type="url" readonly></label><p id="shareNotice" role="status"></p></div>
+<div class="end"><button type="button" data-close="shareDialog">Cerrar</button><button type="button" id="shareWhatsApp" hidden>WhatsApp</button><button type="button" id="shareCopy" hidden>Copiar enlace</button><button class="primary" id="shareCreate">Crear enlace</button></div></form>
+</dialog>
 <dialog id="duplicateDialog" aria-labelledby="duplicateTitle">
 <form id="duplicateForm"><h2 id="duplicateTitle">Duplicar tarjeta</h2><label>Nombre del duplicado<input name="title" required maxlength="120"></label><div class="end"><button type="button" data-close="duplicateDialog">Cancelar</button><button class="primary">Crear duplicado</button></div></form>
 </dialog>
@@ -363,6 +378,10 @@ function drawCard(c){
  append(el,'span','Entrada '+date(c.entry),'meta');
  append(el,'span','Cierre '+date(c.close),'meta');
  append(el,'span',c.agents||'Sin agentes','meta').title=c.agents;
+ const share=button('Compartir',()=>openShare(c));
+ share.className='share-card';
+ share.setAttribute('aria-label','Compartir '+c.title);
+ el.append(share);
  if(!c.archived)el.addEventListener('pointerdown',event=>startDrag(event,el,c));
  return el;
 }
@@ -551,7 +570,71 @@ by('deleteForm').onsubmit=async e=>{
   cards=cards.filter(c=>c.id!==card.id);
  })){deletion.close();editor.close()}
 };
-render();
+const shareFields=['title','notes','type','entry','close','priority'];
+const shareLabels={type:'Tipo',entry:'Entrada',close:'Cierre',priority:'Prioridad'};
+function makeShareLink(card,base=location.href){
+ const snapshot=Object.fromEntries(shareFields.map(field=>[field,card[field]??'']));
+ snapshot.lane=card.lane;
+ const url=new URL(base);
+ url.search='';
+ url.hash='tarjeta='+encodeURIComponent(encode(JSON.stringify(snapshot)));
+ return url.href;
+}
+function readShare(hash){
+ const snapshot=JSON.parse(decode(decodeURIComponent(hash.slice('#tarjeta='.length))));
+ if(!snapshot||!lanes[snapshot.lane]||!shareFields.every(field=>typeof snapshot[field]==='string')||!snapshot.title.trim())throw Error('Enlace inválido');
+ return snapshot;
+}
+function showSharedCard(){
+ document.querySelector('header').hidden=true;
+ document.querySelector('main.wrap').hidden=true;
+ by('sharedView').hidden=false;
+ const article=by('sharedCard');
+ let card;
+ try{card=readShare(location.hash)}catch{append(article,'h1','Enlace de tarjeta no válido');return}
+ document.title=card.title+' · Tarjeta compartida';
+ append(article,'h1',card.title);
+ append(article,'p',lanes[card.lane]);
+ const details=append(article,'dl','');
+ for(const [field,label] of Object.entries(shareLabels)){
+  if(!card[field])continue;
+  append(details,'dt',label);
+  append(details,'dd',field==='entry'||field==='close'?date(card[field]):card[field]);
+ }
+ if(card.notes)append(article,'p',card.notes,'print-notes');
+}
+let cardToShare=null;
+function openShare(card){
+ cardToShare=card;
+ by('shareResult').hidden=by('shareCopy').hidden=by('shareWhatsApp').hidden=true;
+ by('shareCreate').hidden=false;
+ by('shareUrl').value='';
+ by('shareNotice').textContent='';
+ by('shareDialog').showModal();
+}
+by('shareForm').onsubmit=event=>{
+ event.preventDefault();
+ if(!cardToShare)return;
+ const field=by('shareUrl');
+ field.value=makeShareLink(cardToShare);
+ by('shareResult').hidden=by('shareCopy').hidden=by('shareWhatsApp').hidden=false;
+ by('shareCreate').hidden=true;
+ field.select();
+};
+by('shareCopy').onclick=async ()=>{
+ const field=by('shareUrl');
+ try{
+  await navigator.clipboard.writeText(field.value);
+  by('shareNotice').textContent='Enlace copiado.';
+ }catch{
+  field.select();
+  by('shareNotice').textContent='Copia el enlace seleccionado.';
+ }
+};
+by('shareWhatsApp').onclick=()=>{
+ const url='https://wa.me/?text='+encodeURIComponent(by('shareUrl').value);
+ window.open(url,'_blank','noopener,noreferrer');
+};
 function monthAfter(entry){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(entry))return '';
  const [,month,day]=entry.split('-').map(Number);
@@ -584,6 +667,11 @@ function showOverdue(){
 document.addEventListener('visibilitychange',showOverdue);
 setInterval(showOverdue,60000);
 document.querySelectorAll('dialog').forEach(dialog=>dialog.addEventListener('close',showOverdue));
-const remembered=rememberedConnection();
-if(remembered)connectGithub(remembered,true,{restore:true});
+if(location.hash.startsWith('#tarjeta='))showSharedCard();
+else {
+ render();
+ const remembered=rememberedConnection();
+ if(remembered)connectGithub(remembered,true,{restore:true});
+}
+window.addEventListener('hashchange',()=>location.reload());
 </script></html>
