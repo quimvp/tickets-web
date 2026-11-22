@@ -116,8 +116,19 @@ header{display:grid;grid-template-columns:minmax(max-content,1fr) minmax(190px,3
  .header-tools{grid-column:1/-1}
 }
 @media(max-width:620px){header{display:flex}.header-search{order:2}.header-tools{order:3}}
+.header-search input{color:#17243b;background:#fff;caret-color:#17243b}
+.header-search input::placeholder{color:#52617b;opacity:1}
+#paletteDialog{width:min(840px,calc(100% - 24px))}
+#paletteDialog .preview-controls{justify-content:space-between;align-items:center}
+#paletteDialog h2{margin:0}
+.palette-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px}
+.palette-group h4{margin:0 0 6px;font-size:15px}
+.palette-group ul,.palette-groups>ul{list-style:none;margin:0;padding:0}
+.palette-swatch{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:7px;align-items:center;padding:5px 0;font-size:13px}
+.palette-swatch code{color:#465572}
+.palette-sample{height:18px;border:1px solid #17243b28;border-radius:4px}
 </style>
-<header><div class="header-brand"><details class="app-menu" id="appMenu"><summary class="logo" aria-label="Menú del tablero" title="Menú del tablero">▦</summary><div class="menu-options"><button id="printBoard" type="button">Listar / imprimir tarjetas activas</button><button id="openReport" type="button">Informe analítico con ChatGPT</button><button id="openHelp" type="button">Guía de uso</button></div></details><h1 class="board-title">Tablero de tarjetas</h1></div><form id="wordSearchForm" class="header-search" role="search"><input id="wordQuery" type="search" required placeholder="Buscar por palabras" aria-label="Buscar tarjetas por palabras"><button id="wordSearchSubmit" type="submit">Buscar</button></form><div class="header-tools"><div class="toolbar"><button class="primary" id="new">＋ Nueva tarjeta</button></div><button type="button" id="reminderButton">Avisos</button><button id="connect">Conectar GitHub</button><time id="headerClock"></time></div></header>
+<header><div class="header-brand"><details class="app-menu" id="appMenu"><summary class="logo" aria-label="Menú del tablero" title="Menú del tablero">▦</summary><div class="menu-options"><button id="printBoard" type="button">Listar / imprimir tarjetas activas</button><button id="openReport" type="button">Informe analítico con ChatGPT</button><button id="openHelp" type="button">Guía de uso</button><button id="openPalette" type="button">Paleta de colores</button></div></details><h1 class="board-title">Tablero de tarjetas</h1></div><form id="wordSearchForm" class="header-search" role="search"><input id="wordQuery" type="search" required placeholder="Buscar por palabras" aria-label="Buscar tarjetas por palabras"><button id="wordSearchSubmit" type="submit">Buscar</button></form><div class="header-tools"><div class="toolbar"><button class="primary" id="new">＋ Nueva tarjeta</button></div><button type="button" id="reminderButton">Avisos</button><button id="connect">Conectar GitHub</button><time id="headerClock"></time></div></header>
 <main class="wrap">
 <p id="status" role="status">Conecta un repositorio privado de GitHub para cargar tus tarjetas.</p><button id="migrate" hidden>Importar tarjetas de este navegador</button><div class="layout"><div class="board" id="board"></div><section id="archiveBoard" class="lane archive-board" aria-labelledby="archiveTitle" hidden><div class="lane-head"><h2 id="archiveTitle">Archivadas <span class="count" id="archiveCount"></span></h2></div><div class="archive-canvas" id="archiveCanvas"></div></section><aside class="sidebar"><section class="sidebar-panel" aria-labelledby="tagsTitle"><h2 id="tagsTitle">Etiquetas</h2><input id="search" type="search" placeholder="Buscar tarjetas" aria-label="Buscar tarjetas"><div id="tags"></div><div id="tagCards"></div></section><section class="sidebar-panel" aria-labelledby="agentsTitle"><h2 id="agentsTitle">Agentes</h2><p id="agentEmpty" class="muted"></p><ul id="agentList" class="agent-list"></ul></section><button id="archiveToggle" type="button" aria-pressed="false">Ver archivadas</button></aside></div></main>
 <dialog id="connection"><form id="connectionForm">
@@ -149,6 +160,11 @@ header{display:grid;grid-template-columns:minmax(max-content,1fr) minmax(190px,3
 <dialog id="wordSearchDialog" aria-labelledby="wordSearchTitle">
 <div class="preview-controls"><h2 id="wordSearchTitle">Resultados de búsqueda</h2><button type="button" data-close="wordSearchDialog">Cerrar</button></div>
 <p id="wordSearchCount" role="status"></p><div class="archive-canvas" id="wordSearchCanvas"></div>
+</dialog>
+<dialog id="paletteDialog" aria-labelledby="paletteTitle">
+<div class="preview-controls"><h2 id="paletteTitle">Paleta de colores</h2><button type="button" data-close="paletteDialog">Cerrar</button></div>
+<h3>Zonas del lienzo</h3><div id="paletteZones" class="palette-groups"></div>
+<h3>Interfaz</h3><div id="paletteInterface" class="palette-groups"></div>
 </dialog>
 <dialog id="helpDialog" aria-labelledby="helpTitle">
 <h2 id="helpTitle">Guía de uso</h2>
@@ -745,7 +761,56 @@ by('wordSearchForm').onsubmit=event=>{
  by('wordSearchDialog').showModal();
 };
 by('wordQuery').oninput=event=>event.currentTarget.setCustomValidity('');
-const helpMarkdown="## Conectar y empezar\n- Pulsa **Conectar GitHub**, indica tu repositorio privado (por ejemplo, quimvp/tickets) y usa un token con permiso **Contents → Read and write**.\n- **Recordar conexión en este navegador** vuelve a conectar al abrir el tablero. Usa esta opción en un navegador de confianza. Para borrar el token guardado, abre **Gestionar conexión → Desconectar y olvidar token**.\n- Las tarjetas se guardan como archivos Markdown en la carpeta **tarjetas/** del repositorio. Si aparece **Importar tarjetas de este navegador**, puedes migrar tarjetas antiguas guardadas localmente.\n\n## Usar el lienzo\n- **Nueva tarjeta** abre una ficha. El botón **＋** de una zona crea la tarjeta directamente en esa zona.\n- Las tres zonas son **Tickets urgentes**, **Tickets y solicitudes** y **Desarrollos**. Arrastra las tarjetas dentro de una zona o entre zonas. Las tarjetas cambian de color según la zona.\n- **Urgentes** admite hasta tres tarjetas abiertas. Una tarjeta nueva que entre en esa zona emite un pitido después de guardarse.\n- Arrastra la muesca inferior de cada zona para ajustar su altura. Haz doble clic para restablecerla. También puedes enfocar el tirador y usar las flechas arriba y abajo.\n- El pie muestra el total de tarjetas abiertas, el tiempo medio de cierre, el agente con más asignaciones activas, los desarrollos activos, el repositorio, el estado de la conexión y la versión.\n\n## Editar, duplicar y archivar\n- Pulsa una tarjeta del lienzo o su botón **⋯** para editarla. Puedes cambiar el título, la descripción, el tipo, la zona, las fechas, la prioridad, los agentes y las etiquetas. Separa varios agentes o etiquetas con comas.\n- Los tipos disponibles son **Ticket**, **Solicitud**, **Reunión** y **Desarrollo**.\n- **Duplicar** propone el título original. La copia conserva los datos de la ficha, empieza con la fecha de entrada de hoy y queda abierta.\n- Al registrar una **fecha de cierre** o pulsar **Archivar**, la tarjeta sale del tablero principal. Si está visible, aparece un efecto de desintegración.\n- **Ver archivadas**, al pie de la barra lateral, reúne las tarjetas archivadas en un solo lienzo. Abre el menú **⋯** de una tarjeta y pulsa **Restaurar** para reabrirla en **Tickets y solicitudes**. Se borra su fecha de cierre.\n- **Borrar** pide confirmación antes de quitar la tarjeta.\n\n## Buscar y filtrar\n- En la barra superior, **Buscar por palabras** abre un lienzo emergente con las tarjetas activas y archivadas que contienen al menos una de las palabras escritas. Busca en el título, la descripción, el tipo, los agentes, las etiquetas, la prioridad y la zona, sin distinguir mayúsculas ni tildes.\n- **Buscar tarjetas** filtra por texto. En **Etiquetas**, pulsa una etiqueta para mostrar las tarjetas correspondientes y **Todas** para quitar ese filtro.\n- En **Agentes**, pulsa un nombre para ver sus tarjetas y **Todos los agentes** para quitar ese filtro. El número junto a cada nombre indica sus asignaciones activas.\n- La búsqueda y los filtros de etiquetas y agentes se pueden combinar. El archivo reúne todas las tarjetas archivadas sin esos filtros.\n\n## Avisos\n- En la ficha, marca **Avisar si sigue abierta después de dos días**. El tablero muestra un aviso cuando han pasado más de dos días desde la entrada y la tarjeta sigue abierta. **Avisos** permite consultar los pendientes.\n- Tras el aviso, **¿Mantener el aviso?** propone **No**. Al guardar con **No**, se desmarca la casilla. Si eliges **Sí** o vuelves a activar manualmente el aviso, la tarjeta espera 24 horas antes de volver a avisar.\n- Las tarjetas activas sin fecha de cierre también tienen un aviso independiente al cumplir un mes natural desde la entrada.\n\n## Compartir, exportar e imprimir\n- El icono **Compartir** de una tarjeta permite preparar un borrador de **Correo** con sus datos en el cuerpo o crear un enlace para copiar o enviar por **WhatsApp**.\n- El enlace muestra una copia de la tarjeta. Cualquiera que tenga el enlace puede ver esa copia, que conserva los datos del momento en que se creó.\n- En una tarjeta guardada, elige **Markdown**, **TXT** o **PDF** para exportarla. Para PDF, abre la vista de impresión y elige **Guardar como PDF**.\n- En el menú superior izquierdo, **Listar / imprimir tarjetas activas** abre el listado completo, ordenable por fecha o por prioridad y fecha, sin cambiar las posiciones del lienzo.\n- **Informe analítico con ChatGPT** reúne las tarjetas activas y archivadas. Puedes copiar la consulta, abrir ChatGPT, pegar allí la consulta y traer la respuesta al tablero. **Vista del informe / PDF** permite imprimir o guardar las métricas junto con el análisis pegado.\n";
+function addPaletteSwatches(parent,colors){
+ const list=append(parent,'ul','');
+ for(const [label,color] of colors){
+  const row=append(list,'li','','palette-swatch');
+  const sample=append(row,'span','','palette-sample');
+  sample.style.backgroundColor=color;
+  sample.setAttribute('aria-hidden','true');
+  append(row,'span',label);
+  append(row,'code',color.toUpperCase());
+ }
+}
+function renderPalette(){
+ const zones=by('paletteZones');
+ zones.replaceChildren();
+ for(const [index,name] of lanes.entries()){
+  const lane=surfaces[index].closest('.lane');
+  const laneStyle=getComputedStyle(lane);
+  const sample=document.createElement('span');
+  sample.className='card';
+  sample.dataset.lane=index;
+  sample.hidden=true;
+  lane.append(sample);
+  const cardStyle=getComputedStyle(sample);
+  const colors=[
+   ['Fondo de zona',laneStyle.getPropertyValue('--zone').trim()],
+   ['Resalte del tirador',laneStyle.getPropertyValue('--zone-head').trim()],
+   ['Retícula',laneStyle.getPropertyValue('--dot').trim()],
+   ['Fondo de tarjeta',cardStyle.getPropertyValue('--color').trim()],
+   ['Acento de tarjeta',cardStyle.getPropertyValue('--accent').trim()]
+  ];
+  sample.remove();
+  const group=append(zones,'section','','palette-group');
+  append(group,'h4',name);
+  addPaletteSwatches(group,colors);
+ }
+ const ui=by('paletteInterface');
+ ui.replaceChildren();
+ const groups=[
+  [['Barra superior','#14223a'],['Icono del menú','#735bfa'],['Acción principal','#5844db'],['Selección activa','#ede9ff']],
+  [['Fondo de página','#f3f5f9'],['Paneles y diálogos','#ffffff'],['Cabecera del archivo','#e8edf5'],['Fondo del archivo','#f8f9fc']],
+  [['Texto principal','#17243b'],['Texto secundario','#52617b'],['Bordes de panel','#dbe2ef'],['Acción destructiva','#a21b35']]
+ ];
+ for(const colors of groups)addPaletteSwatches(ui,colors);
+}
+by('openPalette').onclick=()=>{
+ by('appMenu').open=false;
+ renderPalette();
+ by('paletteDialog').showModal();
+};
+const helpMarkdown="## Conectar y empezar\n- Pulsa **Conectar GitHub**, indica tu repositorio privado (por ejemplo, quimvp/tickets) y usa un token con permiso **Contents → Read and write**.\n- **Recordar conexión en este navegador** vuelve a conectar al abrir el tablero. Usa esta opción en un navegador de confianza. Para borrar el token guardado, abre **Gestionar conexión → Desconectar y olvidar token**.\n- Las tarjetas se guardan como archivos Markdown en la carpeta **tarjetas/** del repositorio. Si aparece **Importar tarjetas de este navegador**, puedes migrar tarjetas antiguas guardadas localmente.\n\n## Usar el lienzo\n- En el menú superior izquierdo, **Paleta de colores** muestra las muestras y los códigos HEX de las zonas, las tarjetas y la interfaz.\n- **Nueva tarjeta** abre una ficha. El botón **＋** de una zona crea la tarjeta directamente en esa zona.\n- Las tres zonas son **Tickets urgentes**, **Tickets y solicitudes** y **Desarrollos**. Arrastra las tarjetas dentro de una zona o entre zonas. Las tarjetas cambian de color según la zona.\n- **Urgentes** admite hasta tres tarjetas abiertas. Una tarjeta nueva que entre en esa zona emite un pitido después de guardarse.\n- Arrastra la muesca inferior de cada zona para ajustar su altura. Haz doble clic para restablecerla. También puedes enfocar el tirador y usar las flechas arriba y abajo.\n- El pie muestra el total de tarjetas abiertas, el tiempo medio de cierre, el agente con más asignaciones activas, los desarrollos activos, el repositorio, el estado de la conexión y la versión.\n\n## Editar, duplicar y archivar\n- Pulsa una tarjeta del lienzo o su botón **⋯** para editarla. Puedes cambiar el título, la descripción, el tipo, la zona, las fechas, la prioridad, los agentes y las etiquetas. Separa varios agentes o etiquetas con comas.\n- Los tipos disponibles son **Ticket**, **Solicitud**, **Reunión** y **Desarrollo**.\n- **Duplicar** propone el título original. La copia conserva los datos de la ficha, empieza con la fecha de entrada de hoy y queda abierta.\n- Al registrar una **fecha de cierre** o pulsar **Archivar**, la tarjeta sale del tablero principal. Si está visible, aparece un efecto de desintegración.\n- **Ver archivadas**, al pie de la barra lateral, reúne las tarjetas archivadas en un solo lienzo. Abre el menú **⋯** de una tarjeta y pulsa **Restaurar** para reabrirla en **Tickets y solicitudes**. Se borra su fecha de cierre.\n- **Borrar** pide confirmación antes de quitar la tarjeta.\n\n## Buscar y filtrar\n- En la barra superior, **Buscar por palabras** abre un lienzo emergente con las tarjetas activas y archivadas que contienen al menos una de las palabras escritas. Busca en el título, la descripción, el tipo, los agentes, las etiquetas, la prioridad y la zona, sin distinguir mayúsculas ni tildes.\n- **Buscar tarjetas** filtra por texto. En **Etiquetas**, pulsa una etiqueta para mostrar las tarjetas correspondientes y **Todas** para quitar ese filtro.\n- En **Agentes**, pulsa un nombre para ver sus tarjetas y **Todos los agentes** para quitar ese filtro. El número junto a cada nombre indica sus asignaciones activas.\n- La búsqueda y los filtros de etiquetas y agentes se pueden combinar. El archivo reúne todas las tarjetas archivadas sin esos filtros.\n\n## Avisos\n- En la ficha, marca **Avisar si sigue abierta después de dos días**. El tablero muestra un aviso cuando han pasado más de dos días desde la entrada y la tarjeta sigue abierta. **Avisos** permite consultar los pendientes.\n- Tras el aviso, **¿Mantener el aviso?** propone **No**. Al guardar con **No**, se desmarca la casilla. Si eliges **Sí** o vuelves a activar manualmente el aviso, la tarjeta espera 24 horas antes de volver a avisar.\n- Las tarjetas activas sin fecha de cierre también tienen un aviso independiente al cumplir un mes natural desde la entrada.\n\n## Compartir, exportar e imprimir\n- El icono **Compartir** de una tarjeta permite preparar un borrador de **Correo** con sus datos en el cuerpo o crear un enlace para copiar o enviar por **WhatsApp**.\n- El enlace muestra una copia de la tarjeta. Cualquiera que tenga el enlace puede ver esa copia, que conserva los datos del momento en que se creó.\n- En una tarjeta guardada, elige **Markdown**, **TXT** o **PDF** para exportarla. Para PDF, abre la vista de impresión y elige **Guardar como PDF**.\n- En el menú superior izquierdo, **Listar / imprimir tarjetas activas** abre el listado completo, ordenable por fecha o por prioridad y fecha, sin cambiar las posiciones del lienzo.\n- **Informe analítico con ChatGPT** reúne las tarjetas activas y archivadas. Puedes copiar la consulta, abrir ChatGPT, pegar allí la consulta y traer la respuesta al tablero. **Vista del informe / PDF** permite imprimir o guardar las métricas junto con el análisis pegado.\n";
 function renderHelpMarkdown(markdown,target){
  let list=null;
  function addInline(parent,text){
