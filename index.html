@@ -50,6 +50,11 @@ header{flex-wrap:wrap}
 .archive-canvas .card{position:relative;inset:auto!important;width:100%;cursor:default;touch-action:auto;user-select:text}
 .archive-empty{grid-column:1/-1}
 #archiveToggle{width:100%}
+.board{gap:5px}
+.board>.lane{border:0;border-radius:8px}
+.board .lane-head{padding:3px 10px;border-bottom:0;background:var(--zone)}
+.board .lane-head h2{font-size:14px;font-weight:550;color:#414d63}
+.board .lane-head button{padding:1px 7px;background:#ffffffb8;border-color:transparent}
 </style>
 <header><div class="header-brand"><span class="logo" aria-hidden="true">▦</span><h1 class="board-title">Tablero de tarjetas</h1></div><div class="header-tools"><div class="toolbar"><button id="printBoard" type="button">Vista de impresión</button><button class="primary" id="new">＋ Nueva tarjeta</button></div><button id="connect">Conectar GitHub</button><time id="headerClock"></time></div></header>
 <main class="wrap">
@@ -124,7 +129,19 @@ async function loadCards(connection){
   return {...card,sha:file.sha};
  }));
 }
+const urgentLimit=3;
+const isActiveUrgent=card=>card?.lane===0&&!card.archived;
+const exceedsUrgentLimit=(card,records)=>isActiveUrgent(card)
+ && !records.some(item=>item.id===card.id&&isActiveUrgent(item))
+ && records.filter(isActiveUrgent).length>=urgentLimit;
 async function writeCard(card){
+ if(isActiveUrgent(card)&&!cards.some(item=>item.id===card.id&&isActiveUrgent(item))){
+  const latest=await loadCards(github);
+  if(exceedsUrgentLimit(card,latest)){
+   cards=latest;
+   throw Object.assign(new Error('Urgentes admite un máximo de 3 tarjetas activas. Mueve o archiva una para dejar sitio.'),{urgentLimitReached:true});
+  }
+ }
  const {sha,...record}=card;
  const content=encode('<!-- mesa-de-trabajo '+encode(JSON.stringify(record))+' -->\n'+cardMarkdown(record));
  const result=await request(github,filePath(card.id),'PUT',{message:'Guardar tarjeta '+card.id,content,sha});
@@ -136,7 +153,7 @@ async function change(action){
  status('Guardando en GitHub…');
  try{await action();status('Conectado a '+github.repo);return true}
  catch(error){
-  alert(error.message+' Recarga el tablero si la tarjeta cambió en otro dispositivo.');
+  alert(error.urgentLimitReached?error.message:error.message+' Recarga el tablero si la tarjeta cambió en otro dispositivo.');
   status('No se pudo completar la operación en GitHub.');
   return false;
  }finally{busy=false;render()}
