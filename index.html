@@ -81,6 +81,8 @@ body>header{flex:none}
 @media print{body.printing{display:block;min-height:0}}
 .board{grid-template-rows:minmax(min-content,1fr) minmax(min-content,1.65fr) minmax(min-content,1fr) auto}
 #boardSummary{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:10px;line-height:10px;color:#46536a;min-width:0;overflow-wrap:anywhere}
+.card.dissolving{pointer-events:none;overflow:visible;z-index:2}
+.dissolve-particle{position:absolute;width:6px;height:6px;border-radius:2px;background:var(--accent);pointer-events:none}
 </style>
 <header><div class="header-brand"><span class="logo" aria-hidden="true">▦</span><h1 class="board-title">Tablero de tarjetas</h1></div><div class="header-tools"><div class="toolbar"><button id="printBoard" type="button">Vista de impresión</button><button class="primary" id="new">＋ Nueva tarjeta</button></div><button id="connect">Conectar GitHub</button><time id="headerClock"></time></div></header>
 <main class="wrap">
@@ -171,7 +173,57 @@ const isActiveUrgent=card=>card?.lane===0&&!isArchived(card);
 const exceedsUrgentLimit=(card,records)=>isActiveUrgent(card)
  && !records.some(item=>item.id===card.id&&isActiveUrgent(item))
  && records.filter(isActiveUrgent).length>=urgentLimit;
+let urgentAudio;
+function enableUrgentAudio(){
+ try{
+  const Audio=window.AudioContext||window.webkitAudioContext;
+  if(!Audio)return;
+  urgentAudio??=new Audio();
+  if(urgentAudio.state==='suspended')void urgentAudio.resume().catch(()=>{});
+ }catch{}
+}
+document.addEventListener('pointerdown',enableUrgentAudio,{passive:true});
+document.addEventListener('keydown',enableUrgentAudio);
+function playUrgentBeep(){
+ if(urgentAudio?.state!=='running')return;
+ try{
+  const start=urgentAudio.currentTime;
+  const oscillator=urgentAudio.createOscillator();
+  const volume=urgentAudio.createGain();
+  oscillator.type='sine';
+  oscillator.frequency.setValueAtTime(740,start);
+  oscillator.frequency.setValueAtTime(930,start+.07);
+  volume.gain.setValueAtTime(.001,start);
+  volume.gain.exponentialRampToValueAtTime(.11,start+.02);
+  volume.gain.exponentialRampToValueAtTime(.001,start+.17);
+  oscillator.connect(volume).connect(urgentAudio.destination);
+  oscillator.onended=()=>{oscillator.disconnect();volume.disconnect()};
+  oscillator.start(start);
+  oscillator.stop(start+.18);
+ }catch{}
+}
+async function dissolveCard(id){
+ const el=[...board.querySelectorAll('.card')].find(card=>card.dataset.cardId===id);
+ if(!el||!el.animate||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+ if(editor.open)editor.close();
+ el.classList.add('dissolving');
+ const animation=el.animate([
+  {opacity:1,transform:'scale(1)',filter:'blur(0)'},
+  {opacity:0,transform:'scale(.94)',filter:'blur(3px)'}
+ ],{duration:320,easing:'ease-out',fill:'forwards'});
+ for(let i=0;i<14;i++){
+  const particle=append(el,'span','','dissolve-particle');
+  particle.style.left=(10+(i%7)*13)+'%';
+  particle.style.top=(23+Math.floor(i/7)*46)+'%';
+  const angle=i/14*Math.PI*2;
+  const dx=Math.round(Math.cos(angle)*(30+i%3*16));
+  const dy=Math.round(Math.sin(angle)*(28+i%4*8));
+  particle.animate([{opacity:1,transform:'translate(0,0) scale(1)'},{opacity:0,transform:'translate('+dx+'px,'+dy+'px) scale(.2)'}],{duration:320,easing:'ease-out',fill:'forwards'});
+ }
+ await animation.finished.catch(()=>{});
+}
 async function writeCard(card){
+ const previous=cards.find(item=>item.id===card.id);
  if(isActiveUrgent(card)&&!cards.some(item=>item.id===card.id&&isActiveUrgent(item))){
   const latest=await loadCards(github);
   if(exceedsUrgentLimit(card,latest)){
@@ -184,6 +236,8 @@ async function writeCard(card){
  const content=encode('<!-- mesa-de-trabajo '+encode(JSON.stringify(record))+' -->\n'+cardMarkdown(record));
  const result=await request(github,filePath(card.id),'PUT',{message:'Guardar tarjeta '+card.id,content,sha});
  cards=cards.filter(item=>item.id!==card.id).concat({...record,sha:result.content.sha});
+ if(previous&&!isArchived(previous)&&isArchived(record))await dissolveCard(record.id);
+ if(isActiveUrgent(record)&&!isActiveUrgent(previous))playUrgentBeep();
 }
 async function change(action){
  if(!github||busy)return false;
@@ -414,6 +468,7 @@ by('archiveToggle').onclick=()=>{
 function drawCard(c){
  const el=document.createElement('article');el.className='card';el.style.left=c.x+'px';el.style.top=c.y+'px';
  el.dataset.lane=c.lane;
+ el.dataset.cardId=c.id;
  const top=append(el,'div','','card-top');append(top,'span',c.type+(c.priority?' · '+c.priority:''),'badge');
  const edit=button('⋯',()=>openCard(c));edit.setAttribute('aria-label','Editar '+c.title);top.append(edit);
  append(el,'strong',c.title).title=c.title;
