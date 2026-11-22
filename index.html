@@ -79,6 +79,8 @@ body>header{flex:none}
 #shareForm .end{flex-wrap:wrap;justify-content:flex-end}
 @media(max-width:780px){.layout{grid-template-rows:minmax(min-content,1fr) auto}}
 @media print{body.printing{display:block;min-height:0}}
+.board{grid-template-rows:minmax(min-content,1fr) minmax(min-content,1.65fr) minmax(min-content,1fr) auto}
+#boardSummary{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:10px;line-height:10px;color:#46536a;min-width:0;overflow-wrap:anywhere}
 </style>
 <header><div class="header-brand"><span class="logo" aria-hidden="true">▦</span><h1 class="board-title">Tablero de tarjetas</h1></div><div class="header-tools"><div class="toolbar"><button id="printBoard" type="button">Vista de impresión</button><button class="primary" id="new">＋ Nueva tarjeta</button></div><button id="connect">Conectar GitHub</button><time id="headerClock"></time></div></header>
 <main class="wrap">
@@ -347,6 +349,7 @@ function render(){
  const active=cards.filter(card=>!isArchived(card));
  renderArchive();
  renderAgents(active);
+ renderBoardSummary(active);
  by('new').disabled=!github||busy;
  by('connect').textContent=github?'Gestionar conexión':'Conectar GitHub';
  by('connect').disabled=busy;
@@ -370,6 +373,22 @@ function render(){
  const tagged=visible.filter(c=>split(c.tags).length);
  by('tagCards').replaceChildren(...tagged.map(c=>button(c.title,()=>openCard(c))));
  if(!tagged.length)append(by('tagCards'),'span','Sin tarjetas con etiquetas','muted');
+}
+function renderBoardSummary(active){
+ const durations=cards
+  .filter(card=>card.entry&&card.close)
+  .map(card=>(Date.parse(card.close)-Date.parse(card.entry))/86400000)
+  .filter(days=>Number.isFinite(days)&&days>=0);
+ const average=durations.length
+  ? new Intl.NumberFormat('es-ES',{maximumFractionDigits:1}).format(durations.reduce((total,days)=>total+days,0)/durations.length)+' d'
+  : '—';
+ const agents=assignedAgents(active);
+ const max=Math.max(0,...agents.map(agent=>agent.total));
+ const leaders=agents.filter(agent=>agent.total===max).map(agent=>agent.name).join(', ');
+ by('summaryTotal').textContent='Total: '+cards.length;
+ by('summaryAverage').textContent='Cierre medio: '+average;
+ by('summaryAgent').textContent='Más asignadas: '+(leaders?leaders+' ('+max+')':'—');
+ by('summaryDevelopment').textContent='Desarrollo: '+active.filter(card=>card.lane===2).length;
 }
 function renderArchive(){
  const archived=cards.filter(isArchived);
@@ -709,6 +728,7 @@ function showOverdue(){
 document.addEventListener('visibilitychange',showOverdue);
 setInterval(showOverdue,60000);
 document.querySelectorAll('dialog').forEach(dialog=>dialog.addEventListener('close',showOverdue));
+board.insertAdjacentHTML('beforeend',"<footer id=\"boardSummary\" aria-label=\"Resumen del tablero\"><span id=\"summaryTotal\"></span><span id=\"summaryAverage\"></span><span id=\"summaryAgent\"></span><span id=\"summaryDevelopment\"></span></footer>");
 if(location.hash.startsWith('#tarjeta='))showSharedCard();
 else {
  render();
