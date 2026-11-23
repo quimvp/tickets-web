@@ -169,11 +169,16 @@ body>header{position:fixed;inset:0 0 auto;z-index:20}
 .board .lane-head .align-lane{display:grid;place-items:center;min-width:25px;min-height:24px;padding:2px 5px}
 </style>
 <!-- Menú, buscador y controles globales. -->
-<header><div class="header-brand"><details class="app-menu" id="appMenu"><summary class="logo" aria-label="Menú del tablero" title="Menú del tablero">▦</summary><div class="menu-options"><button id="printBoard" type="button">Listar / imprimir tarjetas activas</button><button id="openReport" type="button">Informe analítico con ChatGPT</button><button id="openHelp" type="button">Guía de uso</button><button id="openPalette" type="button">Paleta de colores</button><button id="openImport" type="button">Importar JSON</button><button id="openImportExample" type="button">Ejemplo JSON</button><button id="openHistory" type="button">Cambios recientes</button><button id="openDemo" type="button">Preparar demo</button><button id="openSource" type="button">Código fuente</button></div></details><h1 class="board-title">Tablero de tarjetas</h1></div><form id="wordSearchForm" class="header-search" role="search"><input id="wordQuery" type="search" required placeholder="Palabras o filtros" aria-label="Buscar tarjetas por palabras o filtros" aria-describedby="wordSearchExample"><button id="wordSearchSubmit" type="submit">Buscar</button><span id="wordSearchExample">Ejemplos: fecha:22/11/2026 · agente:Ana · prioridad:alta · avisos:sí</span></form><div class="header-tools"><div class="toolbar"><button class="primary" id="new">＋ Nueva tarjeta</button></div><button type="button" id="reminderButton">Avisos</button><button id="connect">Conectar GitHub</button><div class="header-time"><time id="headerClock"></time><span id="boardElapsed"></span></div></div></header>
+<header><div class="header-brand"><details class="app-menu" id="appMenu"><summary class="logo" aria-label="Menú del tablero" title="Menú del tablero">▦</summary><div class="menu-options"><button id="printBoard" type="button">Listar / imprimir tarjetas activas</button><button id="openReport" type="button">Informe analítico con ChatGPT</button><button id="openHelp" type="button">Guía de uso</button><button id="openPalette" type="button">Paleta de colores</button><button id="openImport" type="button">Importar JSON</button><button id="openImportExample" type="button">Ejemplo JSON</button><button id="openBoardUser" type="button">Cambiar usuario</button><button id="openHistory" type="button">Cambios recientes</button><button id="openDemo" type="button">Preparar demo</button><button id="openSource" type="button">Código fuente</button></div></details><h1 class="board-title">Tablero de tarjetas</h1></div><form id="wordSearchForm" class="header-search" role="search"><input id="wordQuery" type="search" required placeholder="Palabras o filtros" aria-label="Buscar tarjetas por palabras o filtros" aria-describedby="wordSearchExample"><button id="wordSearchSubmit" type="submit">Buscar</button><span id="wordSearchExample">Ejemplos: fecha:22/11/2026 · agente:Ana · prioridad:alta · avisos:sí</span></form><div class="header-tools"><div class="toolbar"><button class="primary" id="new">＋ Nueva tarjeta</button></div><button type="button" id="reminderButton">Avisos</button><button id="connect">Conectar GitHub</button><div class="header-time"><time id="headerClock"></time><span id="boardElapsed"></span></div></div></header>
 <!-- Lienzo activo, archivo y barra lateral. -->
 <main class="wrap">
 <p id="status" role="status">Conecta un repositorio privado de GitHub para cargar tus tarjetas.</p><button id="migrate" hidden>Importar tarjetas de este navegador</button><div class="layout"><div class="board" id="board"></div><section id="archiveBoard" class="lane archive-board" aria-labelledby="archiveTitle" hidden><div class="lane-head"><h2 id="archiveTitle">Archivadas <span class="count" id="archiveCount"></span></h2></div><div class="archive-canvas" id="archiveCanvas"></div></section><aside class="sidebar"><section class="sidebar-panel" aria-labelledby="tagsTitle"><h2 id="tagsTitle">Etiquetas</h2><input id="search" type="search" placeholder="Buscar tarjetas" aria-label="Buscar tarjetas"><div id="tags"></div><div id="tagCards"></div></section><section class="sidebar-panel" aria-labelledby="agentsTitle"><h2 id="agentsTitle">Agentes</h2><p id="agentEmpty" class="muted"></p><ul id="agentList" class="agent-list"></ul></section><button id="archiveToggle" type="button" aria-pressed="false">Ver archivadas</button></aside></div></main>
 <!-- Ventanas emergentes del tablero. -->
+<dialog id="boardUserDialog" aria-labelledby="boardUserTitle"><form id="boardUserForm">
+<h2 id="boardUserTitle">Tu nombre en el tablero</h2>
+<label>Nombre de usuario<input id="boardUserName" list="boardUserOptions" maxlength="60" required autocomplete="off"></label><datalist id="boardUserOptions"></datalist>
+<div class="end"><button id="boardUserCancel" type="button" data-close="boardUserDialog">Cancelar</button><button class="primary">Continuar</button></div>
+</form></dialog>
 <dialog id="connection"><form id="connectionForm">
 <h2>Conectar GitHub</h2><label>Repositorio privado (cuenta/repositorio)<input name="repo" required pattern="[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+" placeholder="mi-cuenta/mesa-tarjetas"></label>
 <label>Token de acceso con permiso de escritura en Contents<input name="token" type="password" required autocomplete="off"></label>
@@ -297,7 +302,7 @@ body>header{position:fixed;inset:0 0 auto;z-index:20}
 </dialog>
 <dialog id="historyDialog" aria-labelledby="historyTitle">
 <div class="preview-controls"><h2 id="historyTitle">Cambios recientes</h2><button type="button" data-close="historyDialog">Cerrar</button></div>
-<p>Último cambio de hasta 15 tarjetas activas o archivadas, ordenadas por su guardado más reciente.</p>
+<p>Último cambio de hasta 15 tarjetas, del más reciente al más antiguo, con nombre, fecha y hora de Madrid.</p>
 <label>Resumen en Markdown<textarea id="historyMarkdown" rows="16" readonly spellcheck="false"></textarea></label>
 <div class="toolbar"><button id="copyHistory" type="button" disabled>Copiar Markdown</button><span id="historyFeedback" role="status"></span></div>
 </dialog>
@@ -351,7 +356,7 @@ body>header{position:fixed;inset:0 0 auto;z-index:20}
 <section class="print-sheet" id="printSheet"><h2 id="previewTitle"></h2><div id="printRecords"></div></section>
 </dialog>
 <script>
-const appVersion='3.0.8';
+const appVersion='3.0.9';
 const lanes=['Tickets urgentes','Tickets y solicitudes','Desarrollos'];
 const key='mesa-trabajo-v1';
 const by=id=>document.getElementById(id);
@@ -579,7 +584,7 @@ async function writeGuardedCard(record,sha,content){
  const tree=await request(github,'/git/trees','POST',{base_tree:parent.tree.sha,tree:[
   {path:'tarjetas/'+record.id+'.md',mode:'100644',type:'blob',sha:blob.sha}
  ]});
- const commit=await request(github,'/git/commits','POST',{message:'Guardar tarjeta '+record.id,tree:tree.sha,parents:[head]});
+ const commit=await request(github,'/git/commits','POST',{message:withChangeAuthor('Guardar tarjeta '+record.id,record.lastChange),tree:tree.sha,parents:[head]});
  await request(github,'/git/refs/heads/'+branch,'PATCH',{sha:commit.sha,force:false});
  cards=latest;
  return blob.sha;
@@ -588,6 +593,7 @@ async function writeGuardedCard(record,sha,content){
 async function writeCard(card,{automatic=false}={}){
  const previous=cards.find(item=>item.id===card.id);
  const {sha,...record}=card;
+ record.lastChange=changeAuthor(automatic);
  record.archived=isArchived(record);
  record.urgentSince=urgentSinceForSave(previous,record);
  record.priority=priorityForLane(record.lane,record.priority);
@@ -599,13 +605,13 @@ async function writeCard(card,{automatic=false}={}){
  const checkCapacity=(isActiveUrgent(record)&&!isActiveUrgent(previous))||addedOpenAgents(previous,record).length>0;
  const savedSha=checkCapacity
   ?await writeGuardedCard(record,sha,content)
-  :(await request(github,filePath(card.id),'PUT',{message:'Guardar tarjeta '+card.id,content,sha})).content.sha;
+  :(await request(github,filePath(card.id),'PUT',{message:withChangeAuthor('Guardar tarjeta '+card.id,record.lastChange),content,sha})).content.sha;
  cards=cards.filter(item=>item.id!==card.id).concat({...record,sha:savedSha});
  if(previous&&!isArchived(previous)&&isArchived(record))await dissolveCard(record.id);
  if(isActiveUrgent(record)&&!isActiveUrgent(previous))playUrgentBeep();
 }
 async function change(action,{background=false}={}){
- if(!github||busy)return false;
+ if(!github||!appUser||busy)return false;
  busy=true;
  status('Guardando en GitHub…');
  try{await action();status('Conectado a '+github.repo);return true}
@@ -614,6 +620,53 @@ async function change(action,{background=false}={}){
   status(background?'No se pudo guardar la actualización automática. Se volverá a intentar.':'No se pudo completar la operación en GitHub.');
   return false;
  }finally{busy=false;render()}
+}
+// Identidad visible del tablero. Se recuerda en este navegador y no sustituye la conexión a GitHub.
+const boardNameKey='mesa-trabajo-users-v1';
+function cleanBoardName(value){
+ return String(value??'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,60);
+}
+let appUser='',boardUserNames=[];
+try{
+ const remembered=JSON.parse(localStorage.getItem(boardNameKey));
+ appUser=cleanBoardName(remembered?.selected);
+ boardUserNames=Array.isArray(remembered?.names)?remembered.names.map(cleanBoardName).filter(Boolean):[];
+}catch{}
+function changeAuthor(automatic=false){
+ return {user:automatic?'Sistema (automático)':appUser,at:new Date().toISOString()};
+}
+function withChangeAuthor(message,change){
+ return message+'\n\nUsuario tablero: '+change.user+'\nFecha tablero: '+change.at;
+}
+function openBoardUser(){
+ by('boardUserOptions').replaceChildren(...boardUserNames.map(name=>new Option(name)));
+ by('boardUserName').value=appUser;
+ by('boardUserCancel').hidden=!appUser;
+ by('boardUserDialog').showModal();
+ by('boardUserName').focus();
+}
+by('boardUserDialog').addEventListener('cancel',event=>{if(!appUser)event.preventDefault()});
+by('openBoardUser').onclick=()=>{
+ if(busy)return;
+ by('appMenu').open=false;
+ openBoardUser();
+};
+by('boardUserForm').onsubmit=event=>{
+ event.preventDefault();
+ const input=by('boardUserName');
+ const selected=cleanBoardName(input.value);
+ if(!selected){input.value='';input.reportValidity();return}
+ const first=!appUser;
+ appUser=selected;
+ boardUserNames=[selected,...boardUserNames.filter(name=>name.toLocaleLowerCase('es')!==selected.toLocaleLowerCase('es'))];
+ try{localStorage.setItem(boardNameKey,JSON.stringify({selected:appUser,names:boardUserNames}))}catch{}
+ by('boardUserDialog').close();
+ if(first)startBoard();else render();
+};
+function startBoard(){
+ render();
+ const remembered=rememberedConnection();
+ if(remembered)connectGithub(remembered,true,{restore:true});
 }
 function legacyCards(){
  try{const list=JSON.parse(localStorage.getItem(key)??'[]');return Array.isArray(list)?list:[]}
@@ -782,10 +835,12 @@ async function alignLane(lane){
    return previous.x!==card.x||previous.y!==card.y;
   });
   if(!updated.length){cards=latest;return}
+  const author=changeAuthor();
   const replacements=new Map();
   const treeEntries=[];
   for(let index=0;index<updated.length;index+=4){
    await Promise.all(updated.slice(index,index+4).map(async ({sha,...record})=>{
+    record.lastChange=author;
     const content=encode('<!-- mesa-de-trabajo '+encode(JSON.stringify(record))+' -->\n'+cardMarkdown(record));
     const blob=await request(github,'/git/blobs','POST',{content,encoding:'base64'});
     replacements.set(record.id,{...record,sha:blob.sha});
@@ -793,7 +848,7 @@ async function alignLane(lane){
    }));
   }
   const message=['Alinear tarjetas de '+lanes[lane],'',...updated.map(card=>'Guardar tarjeta '+card.id)].join('\n');
-  await commitCardTree(head,treeEntries,message);
+  await commitCardTree(head,treeEntries,withChangeAuthor(message,author));
   cards=latest.map(card=>replacements.get(card.id)??card);
  });
 }
@@ -1497,7 +1552,7 @@ function renderPalette(){
  ui.replaceChildren();
  const groups=[
   [['Barra superior','#14223a'],['Icono del menú','#735bfa'],['Acción principal','#5844db'],['Iconos de las zonas','#17243b'],['Selección activa','#ede9ff'],['Enlaces de ayuda, ejemplos de importación y acciones de IA','#432db9'],['Hora, tiempo visible en el tablero y texto auxiliar','#e1e9f8']],
-  [['Fondo de página, pie y bloques Markdown','#f3f5f9'],['Paneles, diálogos y configuración de IA','#ffffff'],['Cabecera del archivo','#e8edf5'],['Fondo del archivo','#f8f9fc']],
+  [['Fondo de página, pie y bloques Markdown','#f3f5f9'],['Paneles y diálogos de usuario e IA','#ffffff'],['Cabecera del archivo','#e8edf5'],['Fondo del archivo','#f8f9fc']],
   [['Texto principal','#17243b'],['Texto secundario','#52617b'],['Bordes de panel','#dbe2ef'],['Ribete de foco negro','#000000'],['Acciones y avisos de borrado','#a21b35']]
  ];
  const root=getComputedStyle(document.documentElement);
@@ -1555,16 +1610,19 @@ async function saveDemo(action){
  const examples=action==='delete'?[]:demoCards(preserved);
  const treeEntries=action==='add'?[]:latest.map(card=>({path:'tarjetas/'+card.id+'.md',mode:'100644',type:'blob',sha:null}));
  if(!treeEntries.length&&!examples.length)return {removed:0,added:0};
+ const author=changeAuthor();
  const added=[];
  for(const card of examples){
+  card.lastChange=author;
   const content=encode('<!-- mesa-de-trabajo '+encode(JSON.stringify(card))+' -->\n'+cardMarkdown(card));
   const {sha}=await request(github,'/git/blobs','POST',{content,encoding:'base64'});
   added.push({...card,sha});
   treeEntries.push({path:'tarjetas/'+card.id+'.md',mode:'100644',type:'blob',sha});
  }
  const heading=action==='delete'?'Borrar tarjetas del tablero':'Preparar tarjetas de demo';
- const message=[heading,'',...added.map(card=>'Guardar tarjeta '+card.id)].join('\n');
- await commitCardTree(head,treeEntries,message);
+ const removals=action==='add'?[]:latest.map(card=>'Borrar tarjeta '+card.id);
+ const message=[heading,'',...added.map(card=>'Guardar tarjeta '+card.id),...removals].join('\n');
+ await commitCardTree(head,treeEntries,withChangeAuthor(message,author));
  cards=preserved.concat(added);
  return {removed:action==='add'?0:latest.length,added:added.length};
 }
@@ -1635,23 +1693,30 @@ function describeCardChange(previous,current){
  return changes.length?changes:['Guardado sin cambios visibles en la ficha.'];
 }
 async function recentCardCommits(connection,ids){
- const remaining=new Set(ids);
+ const current=new Set(ids);
+ const seen=new Set();
  const found=[];
- for(let page=1;remaining.size&&found.length<recentCardLimit;page++){
+ for(let page=1;found.length<recentCardLimit;page++){
   const query=new URLSearchParams({path:'tarjetas',per_page:'100',page:String(page)});
   const commits=await request(connection,'/commits?'+query);
   for(const commit of commits){
-   const ids=[...(commit.commit?.message??'').matchAll(/^Guardar tarjeta ([A-Za-z0-9-]+)\s*$/gm)].map(match=>match[1]);
-   for(const id of ids){
-    if(!remaining.delete(id))continue;
-    found.push({id,commit});
+   const message=commit.commit?.message??'';
+   const matches=message.matchAll(/^(Guardar|Borrar) tarjeta ([A-Za-z0-9-]+)[ \t]*$/gm);
+   for(const [,action,id] of matches){
+    const deleted=action==='Borrar';
+    if(seen.has(id)||(!deleted&&!current.has(id)))continue;
+    seen.add(id);
+    const savedAt=/^Fecha tablero: ([^\r\n]+)$/m.exec(message)?.[1];
+    const epoch=Date.parse(savedAt??commit.commit?.committer?.date??'');
+    const user=/^Usuario tablero: ([^\r\n]+)$/m.exec(message)?.[1];
+    found.push({id,commit,deleted,epoch,user});
     if(found.length===recentCardLimit)break;
    }
    if(found.length===recentCardLimit)break;
   }
   if(commits.length<100)break;
  }
- return found;
+ return found.sort((a,b)=>(b.epoch||0)-(a.epoch||0));
 }
 async function readHistoricalCard(connection,id,ref){
  if(!ref)return null;
@@ -1666,26 +1731,29 @@ async function recentCardMarkdown(connection,records){
  const byId=new Map(records.map(card=>[card.id,card]));
  const entries=await recentCardCommits(connection,byId.keys());
  const lines=['# Cambios recientes de las tarjetas',''];
- const stamp=new Intl.DateTimeFormat('es-ES',{timeZone:'Europe/Madrid',dateStyle:'short',timeStyle:'short'});
+ const stamp=new Intl.DateTimeFormat('es-ES',{timeZone:'Europe/Madrid',dateStyle:'short',timeStyle:'medium'});
  if(!entries.length)lines.push('No hay guardados del tablero en el historial de las tarjetas disponibles.');
  for(let offset=0;offset<entries.length;offset+=4){
   const batch=entries.slice(offset,offset+4);
-  const results=await Promise.all(batch.map(async ({id,commit})=>{
+  const results=await Promise.all(batch.map(async ({id,commit,deleted,epoch,user})=>{
    let current=byId.get(id),changes;
    try{
     const [saved,previous]=await Promise.all([
-     readHistoricalCard(connection,id,commit.sha),
+     deleted?Promise.resolve(null):readHistoricalCard(connection,id,commit.sha),
      readHistoricalCard(connection,id,commit.parents?.[0]?.sha)
     ]);
-    if(!saved)throw Error('Falta la versión guardada.');
-    current=saved;
-    changes=describeCardChange(previous,current);
+    if(deleted){current=previous;changes=['Tarjeta borrada.']}
+    else{
+     if(!saved)throw Error('Falta la versión guardada.');
+     current=saved;
+     changes=describeCardChange(previous,current);
+    }
    }catch{changes=['No se pudo comparar este guardado con la versión anterior.']}
-   const timestamp=Date.parse(commit.commit?.committer?.date??'');
+   const author=user||(!deleted&&current?.lastChange?.user)||'Usuario no registrado';
    return [
-    '## '+markdownLiteral(current.title||id),
+    '## '+markdownLiteral(current?.title||id),
     '',
-    (Number.isFinite(timestamp)?stamp.format(timestamp)+' · ':'')+(isArchived(current)?'Archivada':'Activa'),
+    (Number.isFinite(epoch)?stamp.format(epoch)+' · ':'')+markdownLiteral(author)+' · '+(deleted?'Borrada':isArchived(current)?'Archivada':'Activa'),
     ...changes.map(change=>'- '+change),
     ''
    ];
@@ -1755,7 +1823,7 @@ by('copySource').onclick=async ()=>{
   by('sourceFeedback').textContent='Copia el texto seleccionado.';
  }
 };
-const helpMarkdown="## Conectar y empezar\n- Pulsa **Conectar GitHub**, indica tu repositorio privado (por ejemplo, quimvp/tickets) y usa un token con permiso **Contents → Read and write**.\n- **Recordar conexión en este navegador** vuelve a conectar al abrir el tablero. Usa esta opción en un navegador de confianza. Para borrar el token guardado, abre **Gestionar conexión → Desconectar y olvidar token**.\n- Las tarjetas se guardan como archivos Markdown en la carpeta **tarjetas/** del repositorio. Si aparece **Importar tarjetas de este navegador**, puedes migrar tarjetas antiguas guardadas localmente.\n\n## Usar el lienzo\n- La barra superior permanece anclada al borde de la pantalla mientras te desplazas por el tablero. El menú, el buscador y los botones siguen accesibles. Debajo de la fecha y la hora, **Tiempo en el tablero** cuenta solo mientras la pestaña está visible. Se pausa al cambiar de pestaña, continúa al volver y conserva el tiempo acumulado al recargar.\n- En el menú superior izquierdo, **Paleta de colores** muestra las muestras y los códigos HEX de las zonas, las tarjetas y la interfaz.\n- **Nueva tarjeta** abre una ficha. El botón **＋** de una zona crea la tarjeta directamente en esa zona.\n- Las tres zonas son **Tickets urgentes**, **Tickets y solicitudes** y **Desarrollos**. Arrastra las tarjetas dentro de una zona o entre zonas. Las tarjetas cambian de color según la zona.\n- **Urgentes** admite hasta tres tarjetas abiertas. Todas las tarjetas de esta zona tienen prioridad **Alta** automáticamente. Si una tarjeta sigue abierta tras 72 horas en Urgentes, pasa a **Tickets y solicitudes** y aparece en azul, pendiente de revisión. El tablero aplica el cambio cuando está abierto y conectado a GitHub. En las tarjetas antiguas sin registro de entrada en Urgentes, el plazo comienza al detectarlas por primera vez. Una tarjeta nueva que entre en esa zona emite un pitido después de guardarse.\n- Pulsa el icono de cuadrícula en la cabecera de una zona para alinear todas sus tarjetas en filas con 2 px entre tarjetas y 5 px entre filas. También se alinean las tarjetas ocultas por los filtros. Después puedes volver a moverlas.\n- Arrastra la muesca inferior de cada zona para ajustar su altura. Haz doble clic para restablecerla. También puedes enfocar el tirador y usar las flechas arriba y abajo.\n- El pie permanece visible al desplazarte. Pulsa el título de la tarjeta que más tardó en cerrarse para abrirla. El tiempo se calcula entre su fecha de entrada y su fecha de cierre. El pie muestra el total de tarjetas abiertas, el tiempo medio de cierre, el agente con más asignaciones activas, los desarrollos activos, el repositorio, el estado de la conexión y la versión. La primera cifra de la versión sube cada diez publicaciones.\n\n## Importar tickets desde JSON\n- En el menú superior izquierdo, **Ejemplo JSON**, justo después de **Importar JSON**, abre un ejemplo de cinco tarjetas con todos los campos admitidos. El mismo ejemplo aparece en la ventana de importación. Pulsa **Copiar ejemplo JSON** o **Descargar JSON**. Para importar, conecta GitHub, pega la lista en el campo y pulsa **Importar**.\n- El JSON debe ser una lista entre **[ ]**, con un objeto **{ }** por tarjeta. El único campo obligatorio es **titulo**, con un máximo de 120 caracteres.\n- Campos opcionales: **descripcion**, **tipo**, **prioridad**, **agentes**, **etiquetas** y **fechaEntrada**.\n- **tipo** admite **Ticket**, **Solicitud**, **Reunión** o **Desarrollo**. Si lo omites, se usa **Ticket**. **prioridad** admite **Alta**, **Media** o **Baja**. Puedes omitirla.\n- Escribe **agentes** y **etiquetas** como listas de textos o como texto separado por comas. **fechaEntrada** admite AAAA-MM-DD o DD/MM/AAAA. Si la omites, se usa la fecha de hoy.\n- El tablero comprueba toda la lista antes de empezar. Si hay un error, corrige la tarjeta indicada. Si GitHub interrumpe la importación, deja el texto intacto y pulsa **Importar** otra vez para continuar.\n\nEjemplo breve\n\n```json\n[\n  {\"titulo\": \"Revisar pedido\", \"prioridad\": \"Media\", \"agentes\": [\"Ana Ruiz\"]},\n  {\"titulo\": \"Confirmar envío\", \"etiquetas\": [\"Logística\"]}\n]\n```\n\n- Las tarjetas importadas aparecen en azul en **Tickets y solicitudes**, pendientes de revisión. En el orden del JSON, se colocan de izquierda a derecha en los primeros huecos libres de cada fila, empezando por arriba y respetando las tarjetas que ya están colocadas. Abre una tarjeta, marca **Marcar como revisada** y guarda para que adopte el color normal de su zona.\n\n## Editar, duplicar y archivar\n- La ficha toma el color de la zona seleccionada. El campo que estás editando se reconoce por un ribete negro de 1 px.\n- En la descripción, **Mejorar con IA** permite pulir o ampliar el texto. Con el servicio configurado, pulsa **Generar sugerencia** para rellenar **Descripción sugerida** con OpenAI. Revisa la propuesta, pulsa **Aplicar a la descripción** si la aceptas y **Guardar** para conservarla en GitHub. La primera vez, indica la URL HTTPS y el código propio del servicio en **Configurar servicio**. También puedes abrir **Usar ChatGPT manualmente**.\n- Marca **Cerrar automáticamente en 24 horas** al guardar una tarjeta para iniciar el plazo. Tras 24 horas el tablero conectado a GitHub la archiva y añade a la descripción una nota breve que indica si hubo cambios. Si el tablero estaba cerrado o desconectado, aplica el cierre al volver a conectar. Al restaurarla, el plazo queda desactivado.\n- Pulsa una tarjeta del lienzo o su botón **⋯** para editarla. Puedes cambiar el título, la descripción, el tipo, la zona, las fechas, la prioridad, los agentes y las etiquetas. Separa varios agentes o etiquetas con comas. Cada agente puede tener hasta 10 tarjetas abiertas. Cerrar, archivar o reasignar una tarjeta libera una plaza para ese agente.\n- Los tipos disponibles son **Ticket**, **Solicitud**, **Reunión** y **Desarrollo**.\n- **Duplicar** propone el título original. La copia conserva los datos de la ficha, empieza con la fecha de entrada de hoy y queda abierta.\n- Al registrar una **fecha de cierre** o pulsar **Archivar**, la tarjeta sale del tablero principal. Si está visible, aparece un efecto de desintegración.\n- **Ver archivadas**, al pie de la barra lateral, reúne las tarjetas archivadas en un solo lienzo. Abre el menú **⋯** de una tarjeta y pulsa **Restaurar** para reabrirla en **Tickets y solicitudes**. Se borra su fecha de cierre.\n- **Borrar** pide confirmación antes de quitar la tarjeta.\n\n## Buscar y filtrar\n- En la barra superior, **Buscar por palabras** abre un lienzo emergente con las tarjetas activas y archivadas que contienen al menos una de las palabras escritas. Busca en el título, la descripción, el tipo, los agentes, las etiquetas, la prioridad y la zona, sin distinguir mayúsculas ni tildes. Pulsa una tarjeta del lienzo emergente para abrir su ficha.\n- Usa **fecha:22/11/2026** para buscar por entrada o cierre, o **entrada:2026-11-22** y **cierre:2026-11-22** para comparar un campo concreto. **agente:\"Ana Ruiz\"**, **prioridad:alta** y **avisos:sí** filtran por agente, prioridad y casilla de aviso activada. Puedes usar **avisos:no** para buscar avisos desactivados. Si combinas filtros, la tarjeta debe cumplirlos todos y contener al menos una de las palabras libres, si las escribes.\n- **Buscar tarjetas** filtra por texto. En **Etiquetas**, pulsa una etiqueta para mostrar las tarjetas correspondientes y **Todas** para quitar ese filtro.\n- En **Agentes**, pulsa un nombre para ver sus tarjetas y **Todos los agentes** para quitar ese filtro. El número junto a cada nombre indica sus asignaciones activas.\n- La búsqueda y los filtros de etiquetas y agentes se pueden combinar. El archivo reúne todas las tarjetas archivadas sin esos filtros.\n\n## Avisos\n- En la ficha, marca **Avisar si sigue abierta después de dos días**. El tablero muestra un aviso cuando han pasado más de dos días desde la entrada y la tarjeta sigue abierta. **Avisos** permite consultar los pendientes.\n- Tras el aviso, **¿Mantener el aviso?** propone **No**. Al guardar con **No**, se desmarca la casilla. Si eliges **Sí** o vuelves a activar manualmente el aviso, la tarjeta espera 24 horas antes de volver a avisar.\n- Las tarjetas activas sin fecha de cierre también tienen un aviso independiente al cumplir un mes natural desde la entrada.\n\n## Compartir, exportar e imprimir\n- El icono **Compartir** de una tarjeta permite preparar un borrador de **Correo** con sus datos en el cuerpo o crear un enlace para copiar o enviar por **WhatsApp**.\n- El enlace muestra una copia de la tarjeta. Cualquiera que tenga el enlace puede ver esa copia, que conserva los datos del momento en que se creó.\n- En una tarjeta guardada, elige **Markdown**, **TXT** o **PDF** para exportarla. Para PDF, abre la vista de impresión y elige **Guardar como PDF**.\n- En el menú superior izquierdo, **Listar / imprimir tarjetas activas** abre el listado completo, ordenable por fecha o por prioridad y fecha, sin cambiar las posiciones del lienzo.\n- **Informe analítico con ChatGPT** reúne las tarjetas activas y archivadas. Puedes copiar la consulta, abrir ChatGPT, pegar allí la consulta y traer la respuesta al tablero. **Vista del informe / PDF** permite imprimir o guardar las métricas junto con el análisis pegado.\n\n## Cambios recientes\n- **Cambios recientes** consulta el historial de GitHub y muestra en Markdown el último guardado de hasta 15 tarjetas distintas, activas o archivadas. Incluye la fecha y los campos que cambiaron. Usa **Copiar Markdown** para conservar el resumen.\n\n## Preparar una demo\n- En **Preparar demo** puedes añadir tarjetas ficticias, borrar todas y generar la demo o vaciar el tablero. Las dos opciones de borrado eliminan las tarjetas activas y archivadas del repositorio conectado y piden escribir **BORRAR**. Los ejemplos muestran zonas, prioridades, tipos, agentes, revisión, avisos, cierre automático y archivo.\n\n## Código fuente\n- La última opción del menú, **Código fuente**, muestra en Markdown el HTML, CSS y JavaScript de la versión publicada, con comentarios en los bloques principales. Pulsa **Copiar Markdown** para copiarlo.\n\n## Dependencias del proyecto\n- **Navegador web**. Ejecuta la interfaz en HTML, CSS y JavaScript. También permite copiar, descargar archivos, imprimir, guardar como PDF y reproducir el pitido de Urgentes.\n- **GitHub Pages**. Publica el tablero y el ejemplo JSON, y sirve el HTML que muestra **Código fuente**.\n- **API REST de GitHub**. Lee y guarda las tarjetas Markdown en el repositorio privado, consulta el historial y registra los cambios de posición. Requiere un token con **Contents → Read and write**.\n- **Cloudflare Workers y Wrangler**. Cloudflare aloja el servicio que autentica las solicitudes de IA y conserva la clave de OpenAI en el servidor. Wrangler permite desplegar y configurar ese servicio.\n- **API de OpenAI**. Genera la propuesta al pulsar **Generar sugerencia**. Requiere los secretos configurados en Cloudflare y cuota disponible en OpenAI.\n- **ChatGPT, WhatsApp y correo**. ChatGPT se abre para el análisis manual y los informes. WhatsApp recibe el enlace que eliges compartir. **Correo** abre un borrador en la aplicación configurada en el dispositivo.\n";
+const helpMarkdown="## Conectar y empezar\n- La primera vez, elige tu nombre de usuario. El navegador recuerda el nombre y sugiere los anteriores. Usa **Cambiar usuario** en el menú si comparte el tablero otra persona. El nombre identifica tus cambios en el historial.\n- Pulsa **Conectar GitHub**, indica tu repositorio privado (por ejemplo, quimvp/tickets) y usa un token con permiso **Contents → Read and write**.\n- **Recordar conexión en este navegador** vuelve a conectar al abrir el tablero. Usa esta opción en un navegador de confianza. Para borrar el token guardado, abre **Gestionar conexión → Desconectar y olvidar token**.\n- Las tarjetas se guardan como archivos Markdown en la carpeta **tarjetas/** del repositorio. Si aparece **Importar tarjetas de este navegador**, puedes migrar tarjetas antiguas guardadas localmente.\n\n## Usar el lienzo\n- La barra superior permanece anclada al borde de la pantalla mientras te desplazas por el tablero. El menú, el buscador y los botones siguen accesibles. Debajo de la fecha y la hora, **Tiempo en el tablero** cuenta solo mientras la pestaña está visible. Se pausa al cambiar de pestaña, continúa al volver y conserva el tiempo acumulado al recargar.\n- En el menú superior izquierdo, **Paleta de colores** muestra las muestras y los códigos HEX de las zonas, las tarjetas y la interfaz.\n- **Nueva tarjeta** abre una ficha. El botón **＋** de una zona crea la tarjeta directamente en esa zona.\n- Las tres zonas son **Tickets urgentes**, **Tickets y solicitudes** y **Desarrollos**. Arrastra las tarjetas dentro de una zona o entre zonas. Las tarjetas cambian de color según la zona.\n- **Urgentes** admite hasta tres tarjetas abiertas. Todas las tarjetas de esta zona tienen prioridad **Alta** automáticamente. Si una tarjeta sigue abierta tras 72 horas en Urgentes, pasa a **Tickets y solicitudes** y aparece en azul, pendiente de revisión. El tablero aplica el cambio cuando está abierto y conectado a GitHub. En las tarjetas antiguas sin registro de entrada en Urgentes, el plazo comienza al detectarlas por primera vez. Una tarjeta nueva que entre en esa zona emite un pitido después de guardarse.\n- Pulsa el icono de cuadrícula en la cabecera de una zona para alinear todas sus tarjetas en filas con 2 px entre tarjetas y 5 px entre filas. También se alinean las tarjetas ocultas por los filtros. Después puedes volver a moverlas.\n- Arrastra la muesca inferior de cada zona para ajustar su altura. Haz doble clic para restablecerla. También puedes enfocar el tirador y usar las flechas arriba y abajo.\n- El pie permanece visible al desplazarte. Pulsa el título de la tarjeta que más tardó en cerrarse para abrirla. El tiempo se calcula entre su fecha de entrada y su fecha de cierre. El pie muestra el total de tarjetas abiertas, el tiempo medio de cierre, el agente con más asignaciones activas, los desarrollos activos, el repositorio, el estado de la conexión y la versión. La primera cifra de la versión sube cada diez publicaciones.\n\n## Importar tickets desde JSON\n- En el menú superior izquierdo, **Ejemplo JSON**, justo después de **Importar JSON**, abre un ejemplo de cinco tarjetas con todos los campos admitidos. El mismo ejemplo aparece en la ventana de importación. Pulsa **Copiar ejemplo JSON** o **Descargar JSON**. Para importar, conecta GitHub, pega la lista en el campo y pulsa **Importar**.\n- El JSON debe ser una lista entre **[ ]**, con un objeto **{ }** por tarjeta. El único campo obligatorio es **titulo**, con un máximo de 120 caracteres.\n- Campos opcionales: **descripcion**, **tipo**, **prioridad**, **agentes**, **etiquetas** y **fechaEntrada**.\n- **tipo** admite **Ticket**, **Solicitud**, **Reunión** o **Desarrollo**. Si lo omites, se usa **Ticket**. **prioridad** admite **Alta**, **Media** o **Baja**. Puedes omitirla.\n- Escribe **agentes** y **etiquetas** como listas de textos o como texto separado por comas. **fechaEntrada** admite AAAA-MM-DD o DD/MM/AAAA. Si la omites, se usa la fecha de hoy.\n- El tablero comprueba toda la lista antes de empezar. Si hay un error, corrige la tarjeta indicada. Si GitHub interrumpe la importación, deja el texto intacto y pulsa **Importar** otra vez para continuar.\n\nEjemplo breve\n\n```json\n[\n  {\"titulo\": \"Revisar pedido\", \"prioridad\": \"Media\", \"agentes\": [\"Ana Ruiz\"]},\n  {\"titulo\": \"Confirmar envío\", \"etiquetas\": [\"Logística\"]}\n]\n```\n\n- Las tarjetas importadas aparecen en azul en **Tickets y solicitudes**, pendientes de revisión. En el orden del JSON, se colocan de izquierda a derecha en los primeros huecos libres de cada fila, empezando por arriba y respetando las tarjetas que ya están colocadas. Abre una tarjeta, marca **Marcar como revisada** y guarda para que adopte el color normal de su zona.\n\n## Editar, duplicar y archivar\n- La ficha toma el color de la zona seleccionada. El campo que estás editando se reconoce por un ribete negro de 1 px.\n- En la descripción, **Mejorar con IA** permite pulir o ampliar el texto. Con el servicio configurado, pulsa **Generar sugerencia** para rellenar **Descripción sugerida** con OpenAI. Revisa la propuesta, pulsa **Aplicar a la descripción** si la aceptas y **Guardar** para conservarla en GitHub. La primera vez, indica la URL HTTPS y el código propio del servicio en **Configurar servicio**. También puedes abrir **Usar ChatGPT manualmente**.\n- Marca **Cerrar automáticamente en 24 horas** al guardar una tarjeta para iniciar el plazo. Tras 24 horas el tablero conectado a GitHub la archiva y añade a la descripción una nota breve que indica si hubo cambios. Si el tablero estaba cerrado o desconectado, aplica el cierre al volver a conectar. Al restaurarla, el plazo queda desactivado.\n- Pulsa una tarjeta del lienzo o su botón **⋯** para editarla. Puedes cambiar el título, la descripción, el tipo, la zona, las fechas, la prioridad, los agentes y las etiquetas. Separa varios agentes o etiquetas con comas. Cada agente puede tener hasta 10 tarjetas abiertas. Cerrar, archivar o reasignar una tarjeta libera una plaza para ese agente.\n- Los tipos disponibles son **Ticket**, **Solicitud**, **Reunión** y **Desarrollo**.\n- **Duplicar** propone el título original. La copia conserva los datos de la ficha, empieza con la fecha de entrada de hoy y queda abierta.\n- Al registrar una **fecha de cierre** o pulsar **Archivar**, la tarjeta sale del tablero principal. Si está visible, aparece un efecto de desintegración.\n- **Ver archivadas**, al pie de la barra lateral, reúne las tarjetas archivadas en un solo lienzo. Abre el menú **⋯** de una tarjeta y pulsa **Restaurar** para reabrirla en **Tickets y solicitudes**. Se borra su fecha de cierre.\n- **Borrar** pide confirmación antes de quitar la tarjeta.\n\n## Buscar y filtrar\n- En la barra superior, **Buscar por palabras** abre un lienzo emergente con las tarjetas activas y archivadas que contienen al menos una de las palabras escritas. Busca en el título, la descripción, el tipo, los agentes, las etiquetas, la prioridad y la zona, sin distinguir mayúsculas ni tildes. Pulsa una tarjeta del lienzo emergente para abrir su ficha.\n- Usa **fecha:22/11/2026** para buscar por entrada o cierre, o **entrada:2026-11-22** y **cierre:2026-11-22** para comparar un campo concreto. **agente:\"Ana Ruiz\"**, **prioridad:alta** y **avisos:sí** filtran por agente, prioridad y casilla de aviso activada. Puedes usar **avisos:no** para buscar avisos desactivados. Si combinas filtros, la tarjeta debe cumplirlos todos y contener al menos una de las palabras libres, si las escribes.\n- **Buscar tarjetas** filtra por texto. En **Etiquetas**, pulsa una etiqueta para mostrar las tarjetas correspondientes y **Todas** para quitar ese filtro.\n- En **Agentes**, pulsa un nombre para ver sus tarjetas y **Todos los agentes** para quitar ese filtro. El número junto a cada nombre indica sus asignaciones activas.\n- La búsqueda y los filtros de etiquetas y agentes se pueden combinar. El archivo reúne todas las tarjetas archivadas sin esos filtros.\n\n## Avisos\n- En la ficha, marca **Avisar si sigue abierta después de dos días**. El tablero muestra un aviso cuando han pasado más de dos días desde la entrada y la tarjeta sigue abierta. **Avisos** permite consultar los pendientes.\n- Tras el aviso, **¿Mantener el aviso?** propone **No**. Al guardar con **No**, se desmarca la casilla. Si eliges **Sí** o vuelves a activar manualmente el aviso, la tarjeta espera 24 horas antes de volver a avisar.\n- Las tarjetas activas sin fecha de cierre también tienen un aviso independiente al cumplir un mes natural desde la entrada.\n\n## Compartir, exportar e imprimir\n- El icono **Compartir** de una tarjeta permite preparar un borrador de **Correo** con sus datos en el cuerpo o crear un enlace para copiar o enviar por **WhatsApp**.\n- El enlace muestra una copia de la tarjeta. Cualquiera que tenga el enlace puede ver esa copia, que conserva los datos del momento en que se creó.\n- En una tarjeta guardada, elige **Markdown**, **TXT** o **PDF** para exportarla. Para PDF, abre la vista de impresión y elige **Guardar como PDF**.\n- En el menú superior izquierdo, **Listar / imprimir tarjetas activas** abre el listado completo, ordenable por fecha o por prioridad y fecha, sin cambiar las posiciones del lienzo.\n- **Informe analítico con ChatGPT** reúne las tarjetas activas y archivadas. Puedes copiar la consulta, abrir ChatGPT, pegar allí la consulta y traer la respuesta al tablero. **Vista del informe / PDF** permite imprimir o guardar las métricas junto con el análisis pegado.\n\n## Cambios recientes\n- **Cambios recientes** consulta el historial de GitHub y muestra en Markdown el último guardado de hasta 15 tarjetas distintas, activas o archivadas. Muestra primero las modificaciones más recientes, con usuario, fecha, hora de Madrid y campos modificados. También incluye las tarjetas borradas. Los cambios automáticos figuran como **Sistema (automático)** y los anteriores sin nombre como **Usuario no registrado**. Usa **Copiar Markdown** para conservar el resumen.\n\n## Preparar una demo\n- En **Preparar demo** puedes añadir tarjetas ficticias, borrar todas y generar la demo o vaciar el tablero. Las dos opciones de borrado eliminan las tarjetas activas y archivadas del repositorio conectado y piden escribir **BORRAR**. Los ejemplos muestran zonas, prioridades, tipos, agentes, revisión, avisos, cierre automático y archivo.\n\n## Código fuente\n- La última opción del menú, **Código fuente**, muestra en Markdown el HTML, CSS y JavaScript de la versión publicada, con comentarios en los bloques principales. Pulsa **Copiar Markdown** para copiarlo.\n\n## Dependencias del proyecto\n- **Navegador web**. Ejecuta la interfaz en HTML, CSS y JavaScript. También permite copiar, descargar archivos, imprimir, guardar como PDF y reproducir el pitido de Urgentes.\n- **GitHub Pages**. Publica el tablero y el ejemplo JSON, y sirve el HTML que muestra **Código fuente**.\n- **API REST de GitHub**. Lee y guarda las tarjetas Markdown en el repositorio privado, consulta el historial y registra los cambios de posición. Requiere un token con **Contents → Read and write**.\n- **Cloudflare Workers y Wrangler**. Cloudflare aloja el servicio que autentica las solicitudes de IA y conserva la clave de OpenAI en el servidor. Wrangler permite desplegar y configurar ese servicio.\n- **API de OpenAI**. Genera la propuesta al pulsar **Generar sugerencia**. Requiere los secretos configurados en Cloudflare y cuota disponible en OpenAI.\n- **ChatGPT, WhatsApp y correo**. ChatGPT se abre para el análisis manual y los informes. WhatsApp recibe el enlace que eliges compartir. **Correo** abre un borrador en la aplicación configurada en el dispositivo.\n";
 function renderHelpMarkdown(markdown,target){
  let list=null,code=null;
  function addInline(parent,text){
@@ -1950,7 +2018,7 @@ by('deleteForm').onsubmit=async e=>{
  e.preventDefault();
  const card=cards.find(c=>c.id===editing);
  if(await change(async ()=>{
-  await request(github,filePath(card.id),'DELETE',{message:'Borrar tarjeta '+card.id,sha:card.sha});
+  await request(github,filePath(card.id),'DELETE',{message:withChangeAuthor('Borrar tarjeta '+card.id,changeAuthor()),sha:card.sha});
   cards=cards.filter(c=>c.id!==card.id);
  })){deletion.close();editor.close()}
 };
@@ -2142,10 +2210,7 @@ if(typeof ResizeObserver==='function'){
  new ResizeObserver(()=>document.documentElement.style.setProperty('--summary-height',summary.offsetHeight+'px')).observe(summary);
 }
 if(location.hash.startsWith('#tarjeta='))showSharedCard();
-else {
- render();
- const remembered=rememberedConnection();
- if(remembered)connectGithub(remembered,true,{restore:true});
-}
+else if(appUser)startBoard();
+else {render();openBoardUser()}
 window.addEventListener('hashchange',()=>location.reload());
 </script></html>
