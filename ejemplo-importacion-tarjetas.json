@@ -1,0 +1,72 @@
+[
+  {
+    "titulo": "Revisar un pedido pendiente",
+    "descripcion": "Confirmar el albarán y actualizar el estado del pedido de ejemplo.",
+    "tipo": "Ticket",
+    "prioridad": "Alta",
+    "agentes": [
+      "Ana Demo",
+      "Bruno Demo"
+    ],
+    "etiquetas": [
+      "Demo",
+      "Logística"
+    ],
+    "fechaEntrada": "2026-11-23"
+  },
+  {
+    "titulo": "Solicitar acceso al portal",
+    "descripcion": "Revisar el perfil que necesita la persona solicitante.",
+    "tipo": "Solicitud",
+    "prioridad": "Media",
+    "agentes": [
+      "Carla Demo"
+    ],
+    "etiquetas": [
+      "Demo",
+      "Accesos"
+    ],
+    "fechaEntrada": "2026-11-23"
+  },
+  {
+    "titulo": "Preparar la reunión de seguimiento",
+    "descripcion": "Preparar el orden del día y los asuntos pendientes.",
+    "tipo": "Reunión",
+    "prioridad": "",
+    "agentes": [
+      "Ana Demo",
+      "Carla Demo"
+    ],
+    "etiquetas": [
+      "Demo",
+      "Equipo"
+    ],
+    "fechaEntrada": "2026-11-23"
+  },
+  {
+    "titulo": "Añadir filtros al informe mensual",
+    "descripcion": "Diseñar filtros por periodo y responsable para el informe de ejemplo.",
+    "tipo": "Desarrollo",
+    "prioridad": "Baja",
+    "agentes": [
+      "Bruno Demo"
+    ],
+    "etiquetas": [
+      "Demo",
+      "Producto"
+    ],
+    "fechaEntrada": "2026-11-23"
+  },
+  {
+    "titulo": "Revisar la base de conocimiento",
+    "descripcion": "Identificar artículos que conviene actualizar antes de la demo.",
+    "tipo": "Ticket",
+    "prioridad": "Media",
+    "agentes": [],
+    "etiquetas": [
+      "Demo",
+      "Documentación"
+    ],
+    "fechaEntrada": "2026-11-23"
+  }
+]
